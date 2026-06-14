@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\GoogleController;
+use App\Http\Controllers\Owner\BillingController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
@@ -15,6 +16,14 @@ Route::middleware(['auth', 'role:owner'])->prefix('owner')->name('owner.')->grou
     Route::get('/venues', \App\Livewire\Owner\Venues\Index::class)->name('venues.index');
     Route::get('/venues/{venue}', \App\Livewire\Owner\Venues\Courts::class)->name('venues.courts');
     Route::get('/courts/{court}/schedule', \App\Livewire\Owner\Courts\Schedule::class)->name('courts.schedule');
+
+    // Billing (subscription) + payouts (Stripe Connect)
+    Route::get('/billing', \App\Livewire\Owner\Billing::class)->name('billing');
+    Route::get('/billing/subscribe', [BillingController::class, 'subscribe'])->name('billing.subscribe');
+    Route::get('/billing/portal', [BillingController::class, 'billingPortal'])->name('billing.portal');
+    Route::get('/connect', [BillingController::class, 'connect'])->name('connect.redirect');
+    Route::get('/connect/return', [BillingController::class, 'connectReturn'])->name('connect.return');
+    Route::get('/connect/refresh', [BillingController::class, 'connectRefresh'])->name('connect.refresh');
 });
 
 Route::get('/auth/google/redirect', [GoogleController::class, 'redirect'])->name('google.redirect');

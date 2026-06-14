@@ -20,6 +20,9 @@
                         <flux:sidebar.item icon="building-storefront" :href="route('owner.venues.index')" :current="request()->routeIs('owner.venues.*')" wire:navigate>
                             {{ __('My Venues') }}
                         </flux:sidebar.item>
+                        <flux:sidebar.item icon="credit-card" :href="route('owner.billing')" :current="request()->routeIs('owner.billing')" wire:navigate>
+                            {{ __('Billing') }}
+                        </flux:sidebar.item>
                     @endif
                 </flux:sidebar.group>
             </flux:sidebar.nav>
