@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Enums\UserRole;
 use App\Models\Court;
+use App\Models\SessionTemplate;
 use App\Models\User;
 use App\Models\Venue;
 use Illuminate\Database\Seeder;
@@ -23,7 +24,7 @@ class OwnerUserSeeder extends Seeder
             ],
         );
 
-        // Give the demo owner a sample venue with a couple of courts (only if they have none yet).
+        // Give the demo owner a sample venue with a few courts (only if they have none yet).
         if ($owner->venues()->doesntExist()) {
             $venue = Venue::create([
                 'owner_id' => $owner->id,
@@ -41,6 +42,42 @@ class OwnerUserSeeder extends Seeder
                     'sport' => 'Badminton',
                     'is_active' => true,
                 ]);
+            }
+        }
+
+        // Ensure each of the demo owner's courts has a sample weekly schedule
+        // (idempotent — only adds sessions to courts that have none yet).
+        $owner->load('venues.courts');
+
+        foreach ($owner->venues as $venue) {
+            foreach ($venue->courts as $court) {
+                if ($court->sessionTemplates()->exists()) {
+                    continue;
+                }
+
+                // Weeknight evening sessions (Mon–Fri, 8–10pm, RM40).
+                foreach ([1, 2, 3, 4, 5] as $weekday) {
+                    SessionTemplate::create([
+                        'court_id' => $court->id,
+                        'day_of_week' => $weekday,
+                        'start_time' => '20:00',
+                        'end_time' => '22:00',
+                        'price' => 40,
+                        'is_active' => true,
+                    ]);
+                }
+
+                // Weekend morning sessions (Sat & Sun, 9–11am, RM50).
+                foreach ([6, 0] as $weekday) {
+                    SessionTemplate::create([
+                        'court_id' => $court->id,
+                        'day_of_week' => $weekday,
+                        'start_time' => '09:00',
+                        'end_time' => '11:00',
+                        'price' => 50,
+                        'is_active' => true,
+                    ]);
+                }
             }
         }
     }
