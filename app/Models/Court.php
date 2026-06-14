@@ -59,7 +59,8 @@ class Court extends Model
     {
         return $query->where('is_active', true)
             ->whereHas('venue.owner', function ($owner) {
-                $owner->where('connect_onboarded', true)
+                $owner->where('is_suspended', false)
+                    ->where('connect_onboarded', true)
                     ->whereHas('subscriptions', function ($sub) {
                         $sub->where('type', 'default')->whereIn('stripe_status', ['active', 'trialing']);
                     });

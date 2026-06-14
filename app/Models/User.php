@@ -33,7 +33,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'email', 'password', 'role', 'google_id', 'stripe_connect_account_id', 'connect_onboarded', 'business_registration_number'])]
+#[Fillable(['name', 'email', 'password', 'role', 'is_suspended', 'google_id', 'stripe_connect_account_id', 'connect_onboarded', 'business_registration_number'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable implements PasskeyUser
 {
@@ -62,6 +62,7 @@ class User extends Authenticatable implements PasskeyUser
             'password' => 'hashed',
             'role' => UserRole::class,
             'connect_onboarded' => 'boolean',
+            'is_suspended' => 'boolean',
         ];
     }
 
@@ -87,7 +88,9 @@ class User extends Authenticatable implements PasskeyUser
      */
     public function canAcceptBookings(): bool
     {
-        return $this->subscribed('default') && $this->connect_onboarded;
+        return ! $this->is_suspended
+            && $this->subscribed('default')
+            && $this->connect_onboarded;
     }
 
     /**

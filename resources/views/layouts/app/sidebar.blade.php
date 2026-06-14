@@ -33,6 +33,15 @@
                             {{ __('My Bookings') }}
                         </flux:sidebar.item>
                     @endif
+
+                    @if (auth()->user()?->role === \App\Enums\UserRole::Admin)
+                        <flux:sidebar.item icon="chart-bar" :href="route('admin.dashboard')" :current="request()->routeIs('admin.dashboard')" wire:navigate>
+                            {{ __('Admin Dashboard') }}
+                        </flux:sidebar.item>
+                        <flux:sidebar.item icon="users" :href="route('admin.owners')" :current="request()->routeIs('admin.owners')" wire:navigate>
+                            {{ __('Owners') }}
+                        </flux:sidebar.item>
+                    @endif
                 </flux:sidebar.group>
             </flux:sidebar.nav>
 
