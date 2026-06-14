@@ -12,7 +12,8 @@ test('a customer cannot open an owner-only route', function () {
 test('an owner can open an owner-only route', function () {
     $owner = User::factory()->create(['role' => UserRole::Owner]);
 
-    $this->actingAs($owner)->get('/owner')->assertOk();
+    // /owner redirects owners to their venues page
+    $this->actingAs($owner)->get('/owner')->assertRedirect('/owner/venues');
 });
 
 test('a guest is redirected to login from an owner-only route', function () {

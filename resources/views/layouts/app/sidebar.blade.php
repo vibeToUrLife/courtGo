@@ -15,6 +15,12 @@
                     <flux:sidebar.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>
                         {{ __('Dashboard') }}
                     </flux:sidebar.item>
+
+                    @if (auth()->user()?->role === \App\Enums\UserRole::Owner)
+                        <flux:sidebar.item icon="building-storefront" :href="route('owner.venues.index')" :current="request()->routeIs('owner.venues.*')" wire:navigate>
+                            {{ __('My Venues') }}
+                        </flux:sidebar.item>
+                    @endif
                 </flux:sidebar.group>
             </flux:sidebar.nav>
 
