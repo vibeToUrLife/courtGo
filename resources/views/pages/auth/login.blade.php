@@ -51,6 +51,12 @@
             </div>
         </form>
 
+        <flux:separator :text="__('or')" />
+
+        <flux:button :href="route('google.redirect')" variant="outline" class="w-full">
+            {{ __('Sign in with Google') }}
+        </flux:button>
+
         <div class="space-x-1 text-sm text-center rtl:space-x-reverse text-zinc-600 dark:text-zinc-400">
             <span>{{ __('Don\'t have an account?') }}</span>
             <flux:link :href="route('register')" wire:navigate>{{ __('Sign up') }}</flux:link>
