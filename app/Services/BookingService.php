@@ -46,6 +46,15 @@ class BookingService
                     ->lockForUpdate()
                     ->get();
 
+                // Free any expired-but-not-yet-swept hold on this exact slot so it can be re-booked
+                // (the every-minute sweep may not have run yet). This clears it from the unique index.
+                $court->bookings()
+                    ->whereDate('booking_date', $date->toDateString())
+                    ->where('start_time', $session->start_time)
+                    ->where('status', BookingStatus::Pending->value)
+                    ->where('hold_expires_at', '<=', now())
+                    ->update(['status' => BookingStatus::Expired->value]);
+
                 return Booking::create([
                     'customer_id' => $customer->id,
                     'court_id' => $court->id,

@@ -53,6 +53,21 @@ test('reserving an already-held slot throws SlotUnavailable', function () {
         ->toThrow(SlotUnavailableException::class);
 });
 
+test('a slot with an expired pending hold can be reserved again', function () {
+    $date = Carbon::parse('2026-07-06');
+    $session = liveSession($date);
+
+    // First customer holds the slot, then the hold expires (row still 'pending' — sweep job hasn't run).
+    $first = app(BookingService::class)->reserve(User::factory()->create(), $session, $date);
+    $first->update(['hold_expires_at' => now()->subMinute()]);
+
+    // Second customer should be able to grab the reverted slot.
+    $second = app(BookingService::class)->reserve(User::factory()->create(), $session, $date);
+
+    expect($second->status)->toBe(BookingStatus::Pending)
+        ->and($first->fresh()->status)->toBe(BookingStatus::Expired);
+});
+
 test('reserving a court that is not live throws SlotUnavailable', function () {
     $date = Carbon::parse('2026-07-06');
     $owner = User::factory()->create(['role' => UserRole::Owner]); // no subscription / not onboarded
