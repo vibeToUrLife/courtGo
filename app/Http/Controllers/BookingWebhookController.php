@@ -6,6 +6,7 @@ use App\Enums\BookingStatus;
 use App\Models\Booking;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Laravel\Cashier\Cashier;
 use Stripe\Webhook;
 
 /**
@@ -52,6 +53,33 @@ class BookingWebhookController extends Controller
             return;
         }
 
+        // Edge case: the customer paid right as their hold expired, and another
+        // active booking grabbed this slot meanwhile. Don't double-book — refund instead.
+        $slotTaken = Booking::query()
+            ->where('court_id', $booking->court_id)
+            ->whereDate('booking_date', $booking->booking_date->toDateString())
+            ->where('start_time', $booking->start_time)
+            ->whereKeyNot($booking->id)
+            ->where(function ($q) {
+                $q->where('status', BookingStatus::Confirmed->value)
+                    ->orWhere(fn ($p) => $p->where('status', BookingStatus::Pending->value)
+                        ->where('hold_expires_at', '>', now()));
+            })
+            ->exists();
+
+        if ($slotTaken) {
+            $this->refund($session);
+            $booking->update([
+                'status' => BookingStatus::Cancelled,
+                'payment_status' => 'refunded',
+                'stripe_payment_intent_id' => $session['payment_intent'] ?? null,
+                'processed_at' => now(),
+            ]);
+
+            return;
+        }
+
+        // Slot is free → confirm (re-activating it even if the sweep had expired the hold).
         $booking->update([
             'status' => BookingStatus::Confirmed,
             'payment_status' => 'paid',
@@ -59,6 +87,25 @@ class BookingWebhookController extends Controller
             'stripe_payment_intent_id' => $session['payment_intent'] ?? null,
             'processed_at' => now(),
         ]);
+    }
+
+    /** Refund a payment for a booking we can't honour (slot was taken). */
+    private function refund(array $session): void
+    {
+        $paymentIntent = $session['payment_intent'] ?? null;
+
+        if (! $paymentIntent || ! config('cashier.secret')) {
+            return; // nothing to refund / Stripe not configured (tests)
+        }
+
+        try {
+            Cashier::stripe()->refunds->create([
+                'payment_intent' => $paymentIntent,
+                'reverse_transfer' => true, // claw the funds back from the owner too
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     /** Release a still-pending hold (payment failed or the session expired). */

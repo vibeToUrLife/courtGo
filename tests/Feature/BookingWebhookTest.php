@@ -2,6 +2,7 @@
 
 use App\Enums\BookingStatus;
 use App\Models\Booking;
+use App\Models\Court;
 
 function checkoutCompleted(int $bookingId, string $paymentStatus = 'paid'): array
 {
@@ -44,6 +45,38 @@ test('it does not confirm while payment is still unpaid (async)', function () {
     $this->postJson('/stripe/bookings/webhook', checkoutCompleted($booking->id, 'unpaid'))->assertOk();
 
     expect($booking->fresh()->status)->toBe(BookingStatus::Pending);
+});
+
+test('the webhook refunds (not double-books) when the slot was taken by someone else', function () {
+    $court = Court::factory()->create();
+
+    // A: late payer whose hold was swept to expired.
+    $a = Booking::factory()->for($court)->create([
+        'status' => BookingStatus::Expired,
+        'booking_date' => '2026-07-10', 'start_time' => '09:00',
+    ]);
+    // B: grabbed the freed slot and is confirmed.
+    $b = Booking::factory()->for($court)->create([
+        'status' => BookingStatus::Confirmed,
+        'booking_date' => '2026-07-10', 'start_time' => '09:00',
+    ]);
+
+    $this->postJson('/stripe/bookings/webhook', checkoutCompleted($a->id))->assertOk();
+
+    expect($a->fresh()->status)->toBe(BookingStatus::Cancelled)
+        ->and($a->fresh()->payment_status)->toBe('refunded')
+        ->and($b->fresh()->status)->toBe(BookingStatus::Confirmed);
+});
+
+test('the webhook confirms a previously-expired hold when the slot is still free', function () {
+    $a = Booking::factory()->create([
+        'status' => BookingStatus::Expired,
+        'booking_date' => '2026-07-10', 'start_time' => '09:00',
+    ]);
+
+    $this->postJson('/stripe/bookings/webhook', checkoutCompleted($a->id))->assertOk();
+
+    expect($a->fresh()->status)->toBe(BookingStatus::Confirmed);
 });
 
 test('it releases a pending hold on async payment failure', function () {
