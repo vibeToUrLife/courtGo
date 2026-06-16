@@ -30,7 +30,9 @@ Phase 4 adds **owner subscriptions** + **bank payouts (Stripe Connect)**. Everyt
 
 ## Part C — Enable Connect (for owner payouts)
 1. Dashboard → **Connect → Get started** (test mode). Complete the short platform profile.
-2. That's all — the app already creates **Express** connected accounts for owners in code.
+2. That's all — the app creates **Standard** connected accounts for owners in code.
+
+> ⚠️ **Malaysia note:** the app uses **Standard** accounts (not Express). Malaysia does **not** allow Express/Custom accounts where the *platform* is loss-liable — only Standard (where Stripe is loss-liable). A side effect: owners go through Stripe's **full** onboarding, including **ID verification**. In **test mode**, never use your real IC — use Stripe's test document (on desktop, choose "upload a file") or test data. Real ID is only needed when an owner goes live for real.
 
 ## Part D — Webhooks (keep the app in sync with Stripe)
 There are **two** webhooks. Locally, the easiest way is the **Stripe CLI**:
