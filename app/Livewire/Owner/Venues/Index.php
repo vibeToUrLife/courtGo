@@ -57,6 +57,7 @@ class Index extends Component
         auth()->user()->venues()->create($data);
 
         $this->reset('name', 'description', 'address', 'city', 'state', 'image');
+        $this->dispatch('clear-search-select'); // clears the custom state dropdown
     }
 
     public function delete(int $venueId): void

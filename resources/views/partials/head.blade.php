@@ -13,6 +13,8 @@
 
 @vite(['resources/css/app.css', 'resources/js/app.js'])
 
+<style>[x-cloak]{display:none !important;}</style>
+
 <script>
     // Default the whole app to light mode unless the visitor has explicitly
     // picked an appearance before. (Flux otherwise follows the OS setting.)

@@ -12,15 +12,8 @@
 
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <flux:input wire:model="city" label="City" placeholder="Subang Jaya" />
-            <div>
-                <flux:label>State</flux:label>
-                <input list="venue-states" wire:model="state" placeholder="Type or pick a state" autocomplete="off"
-                       class="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
-                <datalist id="venue-states">
-                    @foreach (config('courtgo.states') as $st)<option value="{{ $st }}"></option>@endforeach
-                </datalist>
-                <flux:error name="state" />
-            </div>
+            <x-searchable-select label="State" placeholder="Type or pick a state"
+                :options="config('courtgo.states')" wire-model="state" :value="$state" wire:key="venue-state-select" />
         </div>
 
         {{-- One optional photo of the place, shown to customers. --}}

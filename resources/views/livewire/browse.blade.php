@@ -7,22 +7,8 @@
     {{-- Search --}}
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <flux:input wire:model.live.debounce.300ms="name" label="Place name" placeholder="e.g. Sunway Hall" />
-        <div>
-            <flux:label>Sport</flux:label>
-            <input list="browse-sports" wire:model.live="sport" placeholder="Any sport" autocomplete="off"
-                   class="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
-            <datalist id="browse-sports">
-                @foreach ($sports as $s)<option value="{{ $s }}"></option>@endforeach
-            </datalist>
-        </div>
-        <div>
-            <flux:label>State</flux:label>
-            <input list="browse-states" wire:model.live="state" placeholder="Any state" autocomplete="off"
-                   class="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
-            <datalist id="browse-states">
-                @foreach ($states as $st)<option value="{{ $st }}"></option>@endforeach
-            </datalist>
-        </div>
+        <x-searchable-select label="Sport" placeholder="Any sport" :options="$sports" wire-model="sport" :live="true" :value="$sport" />
+        <x-searchable-select label="State" placeholder="Any state" :options="$states" wire-model="state" :live="true" :value="$state" />
         <flux:input wire:model.live.debounce.300ms="city" label="City" placeholder="e.g. Subang Jaya" />
         <flux:input type="date" wire:model.live="date" label="Date" :min="now()->toDateString()" />
     </div>

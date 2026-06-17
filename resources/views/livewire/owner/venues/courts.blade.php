@@ -20,18 +20,13 @@
             {{-- ── Step 1: sport, how many, naming ── --}}
             @if ($step === 1)
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div>
-                        <flux:label>Sport</flux:label>
-                        <input list="wizard-sports" wire:model.live="sport" placeholder="Type or pick a sport" autocomplete="off"
-                               class="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
-                        <datalist id="wizard-sports">
-                            @foreach (config('courtgo.sports') as $s)
-                                <option value="{{ $s }}"></option>
-                            @endforeach
-                            <option value="Other"></option>
-                        </datalist>
-                        <flux:error name="sport" />
-                    </div>
+                    <x-searchable-select
+                        label="Sport"
+                        placeholder="Type or pick a sport"
+                        :options="[...config('courtgo.sports'), 'Other']"
+                        wire-model="sport"
+                        :live="true"
+                        :value="$sport" />
                     <flux:input type="number" min="1" max="50" wire:model.live="count" label="How many courts?" />
                 </div>
 
