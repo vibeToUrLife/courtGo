@@ -4,6 +4,7 @@ namespace App\Livewire\Owner\Venues;
 
 use App\Models\Venue;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -36,6 +37,10 @@ class Index extends Component
     #[Validate('nullable|image|max:2048')]
     public $image;
 
+    /** Editing the photo of an existing venue. */
+    public ?int $editingVenueId = null;
+    public $newImage;
+
     public function save(): void
     {
         $validated = $this->validate();
@@ -61,6 +66,38 @@ class Index extends Component
         $this->authorize('delete', $venue);
 
         $venue->delete();
+    }
+
+    /** Open the "change photo" panel for one of the owner's venues. */
+    public function editPhoto(int $venueId): void
+    {
+        $venue = Venue::findOrFail($venueId);
+        $this->authorize('update', $venue);
+
+        $this->reset('newImage');
+        $this->editingVenueId = $venueId;
+    }
+
+    public function cancelEditPhoto(): void
+    {
+        $this->reset('editingVenueId', 'newImage');
+    }
+
+    /** Replace the venue's photo, removing the old file. */
+    public function updatePhoto(): void
+    {
+        $venue = Venue::findOrFail($this->editingVenueId);
+        $this->authorize('update', $venue);
+
+        $this->validate(['newImage' => 'required|image|max:2048']);
+
+        if ($venue->image_path) {
+            Storage::disk('public')->delete($venue->image_path);
+        }
+
+        $venue->update(['image_path' => $this->newImage->store('venues', 'public')]);
+
+        $this->reset('editingVenueId', 'newImage');
     }
 
     public function render()

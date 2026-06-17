@@ -44,6 +44,35 @@ test('deleting a venue removes its image file', function () {
     Storage::disk('public')->assertMissing($venue->image_path);
 });
 
+test('an owner can replace a venue photo', function () {
+    Storage::fake('public');
+    $owner = User::factory()->create(['role' => UserRole::Owner]);
+    $old = UploadedFile::fake()->image('old.jpg')->store('venues', 'public');
+    $venue = Venue::factory()->for($owner, 'owner')->create(['image_path' => $old]);
+
+    Livewire::actingAs($owner)
+        ->test(Index::class)
+        ->call('editPhoto', $venue->id)
+        ->set('newImage', UploadedFile::fake()->image('new.jpg'))
+        ->call('updatePhoto')
+        ->assertHasNoErrors();
+
+    $venue->refresh();
+    expect($venue->image_path)->not->toBe($old);
+    Storage::disk('public')->assertMissing($old);        // old file removed
+    Storage::disk('public')->assertExists($venue->image_path);
+});
+
+test('an owner cannot edit another owners venue photo', function () {
+    $owner = User::factory()->create(['role' => UserRole::Owner]);
+    $venue = Venue::factory()->create(); // a different owner's venue
+
+    Livewire::actingAs($owner)
+        ->test(Index::class)
+        ->call('editPhoto', $venue->id)
+        ->assertForbidden();
+});
+
 test('a venue state must be one of the curated states', function () {
     $owner = User::factory()->create(['role' => UserRole::Owner]);
 

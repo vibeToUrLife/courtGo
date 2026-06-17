@@ -18,7 +18,6 @@ test('the wizard creates numbered courts that share one schedule', function () {
         ->set('count', 3)
         ->set('namingStyle', 'number')
         ->set('prefix', 'Court')
-        ->set('startNumber', 1)
         ->call('toStep2')
         ->assertHasNoErrors()
         ->set('scheduleMode', 'same')
@@ -48,7 +47,6 @@ test('the wizard creates lettered courts with different schedules', function () 
         ->set('count', 2)
         ->set('namingStyle', 'letter')
         ->set('prefix', 'Court')
-        ->set('startLetter', 'A')
         ->call('toStep2')
         ->assertHasNoErrors()
         ->set('scheduleMode', 'different')
@@ -81,7 +79,6 @@ test('going back and forward keeps per-court schedule edits', function () {
         ->set('sport', 'Tennis')
         ->set('count', 2)
         ->set('namingStyle', 'letter')
-        ->set('startLetter', 'A')
         ->call('toStep2')
         ->set('scheduleMode', 'different')
         ->call('toStep3')
@@ -166,7 +163,7 @@ test('the wizard requires a sport and at least one court', function () {
         ->assertHasErrors(['sport', 'count']);
 });
 
-test('lettered naming cannot run past Z', function () {
+test('lettered naming is capped at 26 courts', function () {
     $owner = User::factory()->create(['role' => UserRole::Owner]);
     $venue = Venue::factory()->for($owner, 'owner')->create();
 
@@ -174,11 +171,10 @@ test('lettered naming cannot run past Z', function () {
         ->test(Courts::class, ['venue' => $venue])
         ->call('startWizard')
         ->set('sport', 'Tennis')
-        ->set('count', 3)
+        ->set('count', 27)
         ->set('namingStyle', 'letter')
-        ->set('startLetter', 'Z')
         ->call('toStep2')
-        ->assertHasErrors(['startLetter']);
+        ->assertHasErrors(['count']);
 });
 
 test('an owner can delete a court', function () {

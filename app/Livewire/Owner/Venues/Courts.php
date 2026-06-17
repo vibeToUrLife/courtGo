@@ -34,9 +34,7 @@ class Courts extends Component
     public string $customSport = ''; // used when $sport === 'Other'
     public int $count = 1;
     public string $namingStyle = 'number'; // number | letter
-    public string $prefix = 'Court';
-    public int $startNumber = 1;
-    public string $startLetter = 'A';
+    public string $prefix = 'Court';       // the name owners type; numbers/letters are appended
 
     // Step 2: do all courts share one schedule?
     public string $scheduleMode = 'same'; // same | different
@@ -71,7 +69,7 @@ class Courts extends Component
     {
         $this->reset([
             'step', 'sport', 'customSport', 'count', 'namingStyle', 'prefix',
-            'startNumber', 'startLetter', 'scheduleMode', 'sessions', 'courtSessions',
+            'scheduleMode', 'sessions', 'courtSessions',
         ]);
     }
 
@@ -86,16 +84,13 @@ class Courts extends Component
     {
         $names = [];
         $count = max(0, min($this->count, 50));
+        $prefix = trim($this->prefix);
 
         for ($i = 0; $i < $count; $i++) {
-            if ($this->namingStyle === 'letter') {
-                $base = strtoupper(substr(trim($this->startLetter) ?: 'A', 0, 1));
-                $label = chr(ord($base) + $i);
-            } else {
-                $label = (string) ($this->startNumber + $i);
-            }
+            $label = $this->namingStyle === 'letter'
+                ? chr(ord('A') + $i)   // A, B, C …
+                : (string) ($i + 1);   // 1, 2, 3 …
 
-            $prefix = trim($this->prefix);
             $names[] = trim(($prefix !== '' ? $prefix.' ' : '').$label);
         }
 
@@ -113,18 +108,12 @@ class Courts extends Component
             'count' => 'required|integer|min:1|max:50',
             'namingStyle' => 'required|in:number,letter',
             'prefix' => 'nullable|string|max:50',
-            'startNumber' => 'required_if:namingStyle,number|integer|min:1',
-            'startLetter' => 'required_if:namingStyle,letter|string',
         ]);
 
-        if ($this->namingStyle === 'letter') {
-            $base = strtoupper(substr(trim($this->startLetter) ?: 'A', 0, 1));
-
-            if (! ctype_alpha($base) || ord($base) + $this->count - 1 > ord('Z')) {
-                throw ValidationException::withMessages([
-                    'startLetter' => 'Letter naming only runs to Z. Use fewer courts or an earlier starting letter.',
-                ]);
-            }
+        if ($this->namingStyle === 'letter' && $this->count > 26) {
+            throw ValidationException::withMessages([
+                'count' => 'Letter naming supports up to 26 courts (A–Z). Choose numbers for more.',
+            ]);
         }
 
         $this->step = 2;

@@ -12,12 +12,15 @@
 
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <flux:input wire:model="city" label="City" placeholder="Subang Jaya" />
-            <flux:select wire:model="state" label="State">
-                <flux:select.option value="">Choose a state…</flux:select.option>
-                @foreach (config('courtgo.states') as $st)
-                    <flux:select.option value="{{ $st }}">{{ $st }}</flux:select.option>
-                @endforeach
-            </flux:select>
+            <div>
+                <flux:label>State</flux:label>
+                <input list="venue-states" wire:model="state" placeholder="Type or pick a state" autocomplete="off"
+                       class="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
+                <datalist id="venue-states">
+                    @foreach (config('courtgo.states') as $st)<option value="{{ $st }}"></option>@endforeach
+                </datalist>
+                <flux:error name="state" />
+            </div>
         </div>
 
         {{-- One optional photo of the place, shown to customers. --}}
@@ -36,6 +39,27 @@
 
         <flux:button type="submit" variant="primary">Add venue</flux:button>
     </form>
+
+    {{-- Change-photo panel --}}
+    @if ($editingVenueId)
+        <div class="space-y-3 rounded-xl border border-blue-300 p-5 dark:border-blue-700">
+            <flux:heading size="lg">Change venue photo</flux:heading>
+            <input type="file" wire:model="newImage" accept="image/*"
+                   class="block w-full text-sm text-zinc-600 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-600 file:px-3 file:py-2 file:text-white hover:file:bg-blue-700 dark:text-zinc-300" />
+            <flux:error name="newImage" />
+
+            <div wire:loading wire:target="newImage" class="text-sm text-zinc-500">Uploading…</div>
+
+            @if ($newImage)
+                <img src="{{ $newImage->temporaryUrl() }}" alt="Preview" class="h-32 w-full max-w-xs rounded-lg object-cover" />
+            @endif
+
+            <div class="flex gap-2">
+                <flux:button variant="primary" wire:click="updatePhoto">Save photo</flux:button>
+                <flux:button variant="ghost" wire:click="cancelEditPhoto">Cancel</flux:button>
+            </div>
+        </div>
+    @endif
 
     {{-- Venue list --}}
     <div class="space-y-3">
@@ -71,6 +95,9 @@
                                     <div class="flex justify-end gap-2">
                                         <flux:button size="sm" variant="primary" :href="route('owner.venues.courts', $venue)" wire:navigate>
                                             Manage courts
+                                        </flux:button>
+                                        <flux:button size="sm" variant="ghost" icon="photo" wire:click="editPhoto({{ $venue->id }})">
+                                            Photo
                                         </flux:button>
                                         <flux:button
                                             size="sm"

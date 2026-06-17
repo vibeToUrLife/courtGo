@@ -20,13 +20,18 @@
             {{-- ── Step 1: sport, how many, naming ── --}}
             @if ($step === 1)
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <flux:select wire:model.live="sport" label="Sport">
-                        <flux:select.option value="">Choose a sport…</flux:select.option>
-                        @foreach (config('courtgo.sports') as $s)
-                            <flux:select.option value="{{ $s }}">{{ $s }}</flux:select.option>
-                        @endforeach
-                        <flux:select.option value="Other">Other…</flux:select.option>
-                    </flux:select>
+                    <div>
+                        <flux:label>Sport</flux:label>
+                        <input list="wizard-sports" wire:model.live="sport" placeholder="Type or pick a sport" autocomplete="off"
+                               class="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
+                        <datalist id="wizard-sports">
+                            @foreach (config('courtgo.sports') as $s)
+                                <option value="{{ $s }}"></option>
+                            @endforeach
+                            <option value="Other"></option>
+                        </datalist>
+                        <flux:error name="sport" />
+                    </div>
                     <flux:input type="number" min="1" max="50" wire:model.live="count" label="How many courts?" />
                 </div>
 
@@ -39,19 +44,12 @@
                     </flux:text>
                 @endif
 
-                <flux:radio.group wire:model.live="namingStyle" label="Name them" variant="segmented">
+                <flux:input wire:model.live="prefix" label="Court name" placeholder="Court" description="We add the number or letter automatically — type whatever you like, or leave it blank for just 1, 2, 3." />
+
+                <flux:radio.group wire:model.live="namingStyle" label="Number or letter them?" variant="segmented">
                     <flux:radio value="number" label="Numbers (1, 2, 3)" />
                     <flux:radio value="letter" label="Letters (A, B, C)" />
                 </flux:radio.group>
-
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <flux:input wire:model.live="prefix" label="Prefix" placeholder="Court" />
-                    @if ($namingStyle === 'number')
-                        <flux:input type="number" min="1" wire:model.live="startNumber" label="Start from number" />
-                    @else
-                        <flux:input maxlength="1" wire:model.live="startLetter" label="Start from letter" />
-                    @endif
-                </div>
 
                 <div class="rounded-lg bg-zinc-50 dark:bg-zinc-900 p-4">
                     <flux:text class="text-sm font-medium">Preview</flux:text>
