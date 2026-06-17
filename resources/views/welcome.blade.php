@@ -24,16 +24,35 @@
                     @endguest
                     @auth
                         @if (auth()->user()->role === \App\Enums\UserRole::Customer)
+                            <a href="{{ route('courts.browse') }}" wire:navigate
+                               class="rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white">
+                                Find a court
+                            </a>
                             <a href="{{ route('bookings.mine') }}" wire:navigate
-                               class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                               class="rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white">
                                 My bookings
                             </a>
                         @else
                             <a href="{{ route('dashboard') }}" wire:navigate
-                               class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                               class="rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white">
                                 Go to dashboard
                             </a>
                         @endif
+
+                        {{-- Profile menu (top-right) --}}
+                        <flux:dropdown position="bottom" align="end">
+                            <flux:profile :name="auth()->user()->name" :initials="auth()->user()->initials()" icon:trailing="chevron-down" />
+                            <flux:menu>
+                                <flux:menu.item :href="route('profile.edit')" icon="cog" wire:navigate>{{ __('Profile') }}</flux:menu.item>
+                                <flux:menu.separator />
+                                <form method="POST" action="{{ route('logout') }}" class="w-full">
+                                    @csrf
+                                    <flux:menu.item as="button" type="submit" icon="arrow-right-start-on-rectangle" class="w-full cursor-pointer">
+                                        {{ __('Log out') }}
+                                    </flux:menu.item>
+                                </form>
+                            </flux:menu>
+                        </flux:dropdown>
                     @else
                         <a href="{{ route('login') }}" wire:navigate
                            class="rounded-lg px-4 py-2 text-sm font-medium text-zinc-700 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white">
