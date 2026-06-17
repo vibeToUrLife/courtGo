@@ -107,7 +107,6 @@ class Courts extends Component
             'customSport' => 'required_if:sport,Other|nullable|string|max:255',
             'count' => 'required|integer|min:1|max:50',
             'namingStyle' => 'required|in:number,letter',
-            'prefix' => 'nullable|string|max:50',
         ]);
 
         if ($this->namingStyle === 'letter' && $this->count > 26) {
@@ -150,7 +149,8 @@ class Courts extends Component
 
     private function blankSession(): array
     {
-        return ['day_of_week' => 1, 'start_time' => '20:00', 'end_time' => '22:00', 'price' => 40];
+        // A bookable slot, applied across a range of days (default Mon–Fri).
+        return ['from_day' => 1, 'to_day' => 5, 'start_time' => '20:00', 'end_time' => '22:00', 'price' => 40];
     }
 
     public function addSession(): void
@@ -179,13 +179,15 @@ class Courts extends Component
     {
         $this->validate($this->scheduleMode === 'same'
             ? [
-                'sessions.*.day_of_week' => 'required|integer|between:0,6',
+                'sessions.*.from_day' => 'required|integer|between:0,6',
+                'sessions.*.to_day' => 'required|integer|between:0,6',
                 'sessions.*.start_time' => 'required|date_format:H:i',
                 'sessions.*.end_time' => 'required|date_format:H:i',
                 'sessions.*.price' => 'required|numeric|min:0',
             ]
             : [
-                'courtSessions.*.*.day_of_week' => 'required|integer|between:0,6',
+                'courtSessions.*.*.from_day' => 'required|integer|between:0,6',
+                'courtSessions.*.*.to_day' => 'required|integer|between:0,6',
                 'courtSessions.*.*.start_time' => 'required|date_format:H:i',
                 'courtSessions.*.*.end_time' => 'required|date_format:H:i',
                 'courtSessions.*.*.price' => 'required|numeric|min:0',
@@ -200,6 +202,13 @@ class Courts extends Component
                 ? $this->sessions
                 : ($this->courtSessions[$i] ?? []);
 
+            // A court must have at least one slot, or it would exist but never be bookable.
+            if (empty($schedules[$i])) {
+                throw ValidationException::withMessages([
+                    $this->scheduleMode === 'same' ? 'sessions' : "courtSessions.$i" => "Add at least one slot for {$name}.",
+                ]);
+            }
+
             $this->validateSchedule($schedules[$i], $i);
         }
 
@@ -211,14 +220,17 @@ class Courts extends Component
                     'is_active' => true,
                 ]);
 
+                // Each row becomes one bookable slot per day in its range.
                 foreach ($schedules[$i] as $row) {
-                    $court->sessionTemplates()->create([
-                        'day_of_week' => (int) $row['day_of_week'],
-                        'start_time' => $row['start_time'],
-                        'end_time' => $row['end_time'],
-                        'price' => $row['price'],
-                        'is_active' => true,
-                    ]);
+                    foreach ($this->daysInRange($row) as $day) {
+                        $court->sessionTemplates()->create([
+                            'day_of_week' => $day,
+                            'start_time' => $row['start_time'],
+                            'end_time' => $row['end_time'],
+                            'price' => $row['price'],
+                            'is_active' => true,
+                        ]);
+                    }
                 }
             }
         });
@@ -226,7 +238,16 @@ class Courts extends Component
         $this->cancelWizard();
     }
 
-    /** End-after-start and no same-weekday overlaps within one court's schedule. */
+    /** Weekdays (0=Sun … 6=Sat) covered by a row's day range, inclusive. */
+    private function daysInRange(array $row): array
+    {
+        $from = (int) $row['from_day'];
+        $to = (int) $row['to_day'];
+
+        return range(min($from, $to), max($from, $to));
+    }
+
+    /** End-after-start and no overlapping slots on any shared day within one court's schedule. */
     private function validateSchedule(array $rows, int $courtIndex): void
     {
         foreach ($rows as $j => $row) {
@@ -239,17 +260,17 @@ class Courts extends Component
 
         $byDay = [];
         foreach ($rows as $j => $row) {
-            $day = (int) $row['day_of_week'];
-
-            foreach ($byDay[$day] ?? [] as $existing) {
-                if ($row['start_time'] < $existing['end_time'] && $row['end_time'] > $existing['start_time']) {
-                    throw ValidationException::withMessages([
-                        $this->fieldKey($courtIndex, $j, 'start_time') => 'This overlaps another session on the same day.',
-                    ]);
+            foreach ($this->daysInRange($row) as $day) {
+                foreach ($byDay[$day] ?? [] as $existing) {
+                    if ($row['start_time'] < $existing['end'] && $row['end_time'] > $existing['start']) {
+                        throw ValidationException::withMessages([
+                            $this->fieldKey($courtIndex, $j, 'start_time') => 'This overlaps another slot on the same day.',
+                        ]);
+                    }
                 }
-            }
 
-            $byDay[$day][] = $row;
+                $byDay[$day][] = ['start' => $row['start_time'], 'end' => $row['end_time']];
+            }
         }
     }
 

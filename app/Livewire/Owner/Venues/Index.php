@@ -86,6 +86,11 @@ class Index extends Component
     /** Replace the venue's photo, removing the old file. */
     public function updatePhoto(): void
     {
+        // Guard against a stale/cleared selection (e.g. modal dismissed mid-flight).
+        if (! $this->editingVenueId) {
+            return;
+        }
+
         $venue = Venue::findOrFail($this->editingVenueId);
         $this->authorize('update', $venue);
 
@@ -98,6 +103,7 @@ class Index extends Component
         $venue->update(['image_path' => $this->newImage->store('venues', 'public')]);
 
         $this->reset('editingVenueId', 'newImage');
+        $this->dispatch('photo-saved'); // closes the modal
     }
 
     public function render()

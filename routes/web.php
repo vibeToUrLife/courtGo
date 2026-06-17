@@ -11,6 +11,7 @@ Route::get('/', function () {
     return view('welcome', [
         'sports' => collect(config('courtgo.sports')),
         'popularSports' => collect(config('courtgo.popular_sports')),
+        'states' => collect(config('courtgo.states')),
     ]);
 })->name('home');
 

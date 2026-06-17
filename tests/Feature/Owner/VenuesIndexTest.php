@@ -55,12 +55,25 @@ test('an owner can replace a venue photo', function () {
         ->call('editPhoto', $venue->id)
         ->set('newImage', UploadedFile::fake()->image('new.jpg'))
         ->call('updatePhoto')
-        ->assertHasNoErrors();
+        ->assertHasNoErrors()
+        ->assertDispatched('photo-saved'); // modal closes
 
     $venue->refresh();
     expect($venue->image_path)->not->toBe($old);
     Storage::disk('public')->assertMissing($old);        // old file removed
     Storage::disk('public')->assertExists($venue->image_path);
+});
+
+test('updating a photo with no venue selected does nothing', function () {
+    Storage::fake('public');
+    $owner = User::factory()->create(['role' => UserRole::Owner]);
+
+    // editingVenueId is null (e.g. modal dismissed) — must not error or overwrite anything.
+    Livewire::actingAs($owner)
+        ->test(Index::class)
+        ->set('newImage', UploadedFile::fake()->image('stray.jpg'))
+        ->call('updatePhoto')
+        ->assertHasNoErrors();
 });
 
 test('an owner cannot edit another owners venue photo', function () {

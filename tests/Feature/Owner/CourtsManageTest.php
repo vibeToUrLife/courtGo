@@ -22,7 +22,8 @@ test('the wizard creates numbered courts that share one schedule', function () {
         ->assertHasNoErrors()
         ->set('scheduleMode', 'same')
         ->call('toStep3')
-        ->set('sessions.0.day_of_week', 1)
+        ->set('sessions.0.from_day', 1) // Monday only
+        ->set('sessions.0.to_day', 1)
         ->set('sessions.0.start_time', '20:00')
         ->set('sessions.0.end_time', '22:00')
         ->set('sessions.0.price', 40)
@@ -32,8 +33,32 @@ test('the wizard creates numbered courts that share one schedule', function () {
     expect($venue->courts()->pluck('name')->sort()->values()->all())
         ->toBe(['Court 1', 'Court 2', 'Court 3']);
 
-    // Every court got the shared session.
+    // Every court got the shared one-day slot.
     expect($venue->courts->every(fn ($court) => $court->sessionTemplates()->count() === 1))->toBeTrue();
+});
+
+test('a day range creates one slot per day', function () {
+    $owner = User::factory()->create(['role' => UserRole::Owner]);
+    $venue = Venue::factory()->for($owner, 'owner')->create();
+
+    Livewire::actingAs($owner)
+        ->test(Courts::class, ['venue' => $venue])
+        ->call('startWizard')
+        ->set('sport', 'Badminton')
+        ->set('count', 1)
+        ->set('namingStyle', 'number')
+        ->call('toStep2')
+        ->set('scheduleMode', 'same')
+        ->call('toStep3')
+        ->set('sessions.0.from_day', 1) // Mon
+        ->set('sessions.0.to_day', 5)   // Fri → 5 days
+        ->set('sessions.0.start_time', '20:00')
+        ->set('sessions.0.end_time', '22:00')
+        ->set('sessions.0.price', 40)
+        ->call('create')
+        ->assertHasNoErrors();
+
+    expect($venue->courts()->first()->sessionTemplates()->count())->toBe(5);
 });
 
 test('the wizard creates lettered courts with different schedules', function () {
@@ -51,11 +76,13 @@ test('the wizard creates lettered courts with different schedules', function () 
         ->assertHasNoErrors()
         ->set('scheduleMode', 'different')
         ->call('toStep3')
-        ->set('courtSessions.0.0.day_of_week', 1)
+        ->set('courtSessions.0.0.from_day', 1)
+        ->set('courtSessions.0.0.to_day', 1)
         ->set('courtSessions.0.0.start_time', '18:00')
         ->set('courtSessions.0.0.end_time', '19:00')
         ->set('courtSessions.0.0.price', 30)
-        ->set('courtSessions.1.0.day_of_week', 2)
+        ->set('courtSessions.1.0.from_day', 2)
+        ->set('courtSessions.1.0.to_day', 2)
         ->set('courtSessions.1.0.start_time', '09:00')
         ->set('courtSessions.1.0.end_time', '10:00')
         ->set('courtSessions.1.0.price', 50)
@@ -148,6 +175,26 @@ test('choosing Other requires a custom sport name', function () {
         ->set('count', 1)
         ->call('toStep2')
         ->assertHasErrors(['customSport']);
+});
+
+test('the wizard requires at least one slot per court', function () {
+    $owner = User::factory()->create(['role' => UserRole::Owner]);
+    $venue = Venue::factory()->for($owner, 'owner')->create();
+
+    Livewire::actingAs($owner)
+        ->test(Courts::class, ['venue' => $venue])
+        ->call('startWizard')
+        ->set('sport', 'Badminton')
+        ->set('count', 1)
+        ->set('namingStyle', 'number')
+        ->call('toStep2')
+        ->set('scheduleMode', 'same')
+        ->call('toStep3')
+        ->call('removeSession', 0) // delete the only slot
+        ->call('create')
+        ->assertHasErrors(['sessions']);
+
+    expect($venue->courts()->count())->toBe(0);
 });
 
 test('the wizard requires a sport and at least one court', function () {

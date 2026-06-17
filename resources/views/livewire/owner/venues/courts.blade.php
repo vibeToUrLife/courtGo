@@ -44,11 +44,9 @@
                     </flux:text>
                 @endif
 
-                <flux:input wire:model.live="prefix" label="Court name" placeholder="Court" description="We add the number or letter automatically — type whatever you like, or leave it blank for just 1, 2, 3." />
-
-                <flux:radio.group wire:model.live="namingStyle" label="Number or letter them?" variant="segmented">
-                    <flux:radio value="number" label="Numbers (1, 2, 3)" />
-                    <flux:radio value="letter" label="Letters (A, B, C)" />
+                <flux:radio.group wire:model.live="namingStyle" label="Name the courts" variant="segmented">
+                    <flux:radio value="number" label="Court 1, 2, 3" />
+                    <flux:radio value="letter" label="Court A, B, C" />
                 </flux:radio.group>
 
                 <div class="rounded-lg bg-zinc-50 dark:bg-zinc-900 p-4">
@@ -81,31 +79,33 @@
                 </div>
             @endif
 
-            {{-- ── Step 3: build the schedule(s) ── --}}
+            {{-- ── Step 3: build the slot schedule(s) ── --}}
             @if ($step === 3)
                 <flux:text class="text-sm text-zinc-500">
-                    Add the weekly sessions customers can book. A court with no sessions is created but won't be bookable until you add a schedule.
+                    Add the bookable slots. Each row applies to every day in its range (pick Sunday→Saturday for the whole week).
+                    Any time you don't add a slot for simply can't be booked.
                 </flux:text>
 
                 @if ($scheduleMode === 'same')
                     <div class="space-y-3">
-                        <flux:text class="font-medium">Weekly sessions (applied to every court)</flux:text>
+                        <flux:text class="font-medium">Slots (applied to every court)</flux:text>
 
                         @foreach ($sessions as $i => $row)
-                            <div wire:key="session-{{ $i }}" class="grid grid-cols-2 gap-2 sm:grid-cols-5 sm:items-end">
-                                <flux:select wire:model="sessions.{{ $i }}.day_of_week" label="Day">
-                                    @foreach ($days as $num => $label)
-                                        <flux:select.option value="{{ $num }}">{{ $label }}</flux:select.option>
-                                    @endforeach
+                            <div wire:key="session-{{ $i }}" class="grid grid-cols-2 gap-2 lg:grid-cols-6 lg:items-end">
+                                <flux:select wire:model="sessions.{{ $i }}.from_day" label="From day">
+                                    @foreach ($days as $num => $label)<flux:select.option value="{{ $num }}">{{ $label }}</flux:select.option>@endforeach
                                 </flux:select>
-                                <flux:input type="time" wire:model="sessions.{{ $i }}.start_time" label="Start" />
-                                <flux:input type="time" wire:model="sessions.{{ $i }}.end_time" label="End" />
-                                <flux:input type="number" min="0" step="0.01" wire:model="sessions.{{ $i }}.price" label="Price (RM)" />
+                                <flux:select wire:model="sessions.{{ $i }}.to_day" label="Until day">
+                                    @foreach ($days as $num => $label)<flux:select.option value="{{ $num }}">{{ $label }}</flux:select.option>@endforeach
+                                </flux:select>
+                                <flux:input type="time" wire:model="sessions.{{ $i }}.start_time" label="From" />
+                                <flux:input type="time" wire:model="sessions.{{ $i }}.end_time" label="Until" />
+                                <flux:input type="number" min="0" step="0.01" wire:model="sessions.{{ $i }}.price" label="Price per slot (RM)" />
                                 <flux:button variant="ghost" icon="trash" wire:click="removeSession({{ $i }})" />
                             </div>
                         @endforeach
 
-                        <flux:button size="sm" variant="ghost" icon="plus" wire:click="addSession">Add session</flux:button>
+                        <flux:button size="sm" variant="ghost" icon="plus" wire:click="addSession">Add slot</flux:button>
                     </div>
                 @else
                     <div class="space-y-6">
@@ -114,20 +114,21 @@
                                 <flux:heading size="sm">{{ $courtName }}</flux:heading>
 
                                 @foreach ($courtSessions[$c] ?? [] as $i => $row)
-                                    <div wire:key="court-{{ $c }}-session-{{ $i }}" class="grid grid-cols-2 gap-2 sm:grid-cols-5 sm:items-end">
-                                        <flux:select wire:model="courtSessions.{{ $c }}.{{ $i }}.day_of_week" label="Day">
-                                            @foreach ($days as $num => $label)
-                                                <flux:select.option value="{{ $num }}">{{ $label }}</flux:select.option>
-                                            @endforeach
+                                    <div wire:key="court-{{ $c }}-session-{{ $i }}" class="grid grid-cols-2 gap-2 lg:grid-cols-6 lg:items-end">
+                                        <flux:select wire:model="courtSessions.{{ $c }}.{{ $i }}.from_day" label="From day">
+                                            @foreach ($days as $num => $label)<flux:select.option value="{{ $num }}">{{ $label }}</flux:select.option>@endforeach
                                         </flux:select>
-                                        <flux:input type="time" wire:model="courtSessions.{{ $c }}.{{ $i }}.start_time" label="Start" />
-                                        <flux:input type="time" wire:model="courtSessions.{{ $c }}.{{ $i }}.end_time" label="End" />
-                                        <flux:input type="number" min="0" step="0.01" wire:model="courtSessions.{{ $c }}.{{ $i }}.price" label="Price (RM)" />
+                                        <flux:select wire:model="courtSessions.{{ $c }}.{{ $i }}.to_day" label="Until day">
+                                            @foreach ($days as $num => $label)<flux:select.option value="{{ $num }}">{{ $label }}</flux:select.option>@endforeach
+                                        </flux:select>
+                                        <flux:input type="time" wire:model="courtSessions.{{ $c }}.{{ $i }}.start_time" label="From" />
+                                        <flux:input type="time" wire:model="courtSessions.{{ $c }}.{{ $i }}.end_time" label="Until" />
+                                        <flux:input type="number" min="0" step="0.01" wire:model="courtSessions.{{ $c }}.{{ $i }}.price" label="Price per slot (RM)" />
                                         <flux:button variant="ghost" icon="trash" wire:click="removeCourtSession({{ $c }}, {{ $i }})" />
                                     </div>
                                 @endforeach
 
-                                <flux:button size="sm" variant="ghost" icon="plus" wire:click="addCourtSession({{ $c }})">Add session</flux:button>
+                                <flux:button size="sm" variant="ghost" icon="plus" wire:click="addCourtSession({{ $c }})">Add slot</flux:button>
                             </div>
                         @endforeach
                     </div>

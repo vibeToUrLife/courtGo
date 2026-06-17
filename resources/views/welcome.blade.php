@@ -66,7 +66,7 @@
 
             {{-- Search bar: sport + location + date → Find a Court --}}
             <form method="GET" action="{{ route('courts.browse') }}"
-                  class="mx-auto mt-10 grid max-w-3xl grid-cols-1 gap-3 rounded-2xl border border-zinc-200 bg-white p-4 text-left shadow-sm sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end dark:border-zinc-800 dark:bg-zinc-900">
+                  class="mx-auto mt-10 grid max-w-4xl grid-cols-1 gap-3 rounded-2xl border border-zinc-200 bg-white p-4 text-left shadow-sm sm:grid-cols-2 sm:items-end lg:grid-cols-[1fr_1fr_1fr_1fr_auto] dark:border-zinc-800 dark:bg-zinc-900">
                 <label class="block">
                     <span class="mb-1 block text-xs font-medium text-zinc-500">Sport</span>
                     <input list="home-sports" name="sport" placeholder="Any sport" autocomplete="off"
@@ -77,9 +77,18 @@
                 </label>
 
                 <label class="block">
-                    <span class="mb-1 block text-xs font-medium text-zinc-500">Location</span>
-                    <input type="text" name="city" placeholder="City, e.g. Subang Jaya"
+                    <span class="mb-1 block text-xs font-medium text-zinc-500">City</span>
+                    <input type="text" name="city" placeholder="e.g. Subang Jaya"
                            class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950" />
+                </label>
+
+                <label class="block">
+                    <span class="mb-1 block text-xs font-medium text-zinc-500">State</span>
+                    <input list="home-states" name="state" placeholder="Any state" autocomplete="off"
+                           class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950" />
+                    <datalist id="home-states">
+                        @foreach ($states as $st)<option value="{{ $st }}"></option>@endforeach
+                    </datalist>
                 </label>
 
                 <label class="block">

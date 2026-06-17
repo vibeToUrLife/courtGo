@@ -40,27 +40,6 @@
         <flux:button type="submit" variant="primary">Add venue</flux:button>
     </form>
 
-    {{-- Change-photo panel --}}
-    @if ($editingVenueId)
-        <div class="space-y-3 rounded-xl border border-blue-300 p-5 dark:border-blue-700">
-            <flux:heading size="lg">Change venue photo</flux:heading>
-            <input type="file" wire:model="newImage" accept="image/*"
-                   class="block w-full text-sm text-zinc-600 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-600 file:px-3 file:py-2 file:text-white hover:file:bg-blue-700 dark:text-zinc-300" />
-            <flux:error name="newImage" />
-
-            <div wire:loading wire:target="newImage" class="text-sm text-zinc-500">Uploading…</div>
-
-            @if ($newImage)
-                <img src="{{ $newImage->temporaryUrl() }}" alt="Preview" class="h-32 w-full max-w-xs rounded-lg object-cover" />
-            @endif
-
-            <div class="flex gap-2">
-                <flux:button variant="primary" wire:click="updatePhoto">Save photo</flux:button>
-                <flux:button variant="ghost" wire:click="cancelEditPhoto">Cancel</flux:button>
-            </div>
-        </div>
-    @endif
-
     {{-- Venue list --}}
     <div class="space-y-3">
         <flux:heading size="lg">Your venues ({{ $venues->count() }})</flux:heading>
@@ -96,9 +75,11 @@
                                         <flux:button size="sm" variant="primary" :href="route('owner.venues.courts', $venue)" wire:navigate>
                                             Manage courts
                                         </flux:button>
-                                        <flux:button size="sm" variant="ghost" icon="photo" wire:click="editPhoto({{ $venue->id }})">
-                                            Photo
-                                        </flux:button>
+                                        <flux:modal.trigger name="edit-photo">
+                                            <flux:button size="sm" variant="ghost" icon="photo" wire:click="editPhoto({{ $venue->id }})">
+                                                Photo
+                                            </flux:button>
+                                        </flux:modal.trigger>
                                         <flux:button
                                             size="sm"
                                             variant="danger"
@@ -116,4 +97,28 @@
             </div>
         @endif
     </div>
+
+    {{-- Change-photo modal (closes itself after a successful save) --}}
+    <flux:modal name="edit-photo" class="max-w-lg" wire:close="cancelEditPhoto" x-on:photo-saved.window="$flux.modal('edit-photo').close()">
+        <div class="space-y-4">
+            <flux:heading size="lg">Change venue photo</flux:heading>
+
+            <input type="file" wire:model="newImage" accept="image/*"
+                   class="block w-full text-sm text-zinc-600 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-600 file:px-3 file:py-2 file:text-white hover:file:bg-blue-700 dark:text-zinc-300" />
+            <flux:error name="newImage" />
+
+            <div wire:loading wire:target="newImage" class="text-sm text-zinc-500">Uploading…</div>
+
+            @if ($newImage)
+                <img src="{{ $newImage->temporaryUrl() }}" alt="Preview" class="h-40 w-full rounded-lg object-cover" />
+            @endif
+
+            <div class="flex justify-end gap-2">
+                <flux:modal.close>
+                    <flux:button variant="ghost" wire:click="cancelEditPhoto">Cancel</flux:button>
+                </flux:modal.close>
+                <flux:button variant="primary" wire:click="updatePhoto">Save photo</flux:button>
+            </div>
+        </div>
+    </flux:modal>
 </div>
