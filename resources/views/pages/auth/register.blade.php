@@ -71,9 +71,21 @@
             </div>
         </form>
 
+        {{-- Always-visible way to switch between player and owner sign-up, so the mode is never silently wrong. --}}
+        <div class="text-center text-sm text-zinc-600 dark:text-zinc-400">
+            @if ($asOwner)
+                <span>{{ __('Just want to book courts?') }}</span>
+                <flux:link :href="route('register')" wire:navigate>{{ __('Sign up as a player') }}</flux:link>
+            @else
+                <span>{{ __('Own a venue?') }}</span>
+                <flux:link :href="route('register', ['as' => 'owner'])" wire:navigate>{{ __('Sign up as an owner') }}</flux:link>
+            @endif
+        </div>
+
         <div class="space-x-1 rtl:space-x-reverse text-center text-sm text-zinc-600 dark:text-zinc-400">
             <span>{{ __('Already have an account?') }}</span>
-            <flux:link :href="route('login')" wire:navigate>{{ __('Log in') }}</flux:link>
+            {{-- Keep owner mode when going to log in and (potentially) back. --}}
+            <flux:link :href="route('login', $asOwner ? ['as' => 'owner'] : [])" wire:navigate>{{ __('Log in') }}</flux:link>
         </div>
     </div>
 </x-layouts::auth>

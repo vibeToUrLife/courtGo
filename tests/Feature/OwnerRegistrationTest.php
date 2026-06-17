@@ -42,6 +42,17 @@ test('the plain register page never exposes the role field', function () {
         ->assertDontSee('name="role"', escape: false);
 });
 
+test('owner mode survives bouncing between the register and login links', function () {
+    // The register page's "Log in" link keeps owner mode...
+    $this->get(route('register', ['as' => 'owner']))
+        ->assertSee(route('login', ['as' => 'owner']), escape: false);
+
+    // ...and the login page's "Sign up" link keeps owner mode, so the
+    // round-trip register -> login -> register stays an owner sign-up.
+    $this->get(route('login', ['as' => 'owner']))
+        ->assertSee(route('register', ['as' => 'owner']), escape: false);
+});
+
 test('a visitor cannot self-register as an admin', function () {
     $this->post(route('register.store'), [
         'name' => 'Sneaky',

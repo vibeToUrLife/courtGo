@@ -61,7 +61,8 @@
 
         <div class="space-x-1 text-sm text-center rtl:space-x-reverse text-zinc-600 dark:text-zinc-400">
             <span>{{ __('Don\'t have an account?') }}</span>
-            <flux:link :href="route('register')" wire:navigate>{{ __('Sign up') }}</flux:link>
+            {{-- Preserve owner sign-up intent when bouncing between login and register. --}}
+            <flux:link :href="route('register', request('as') === 'owner' ? ['as' => 'owner'] : [])" wire:navigate>{{ __('Sign up') }}</flux:link>
         </div>
     </div>
 </x-layouts::auth>
