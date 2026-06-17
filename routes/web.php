@@ -3,9 +3,19 @@
 use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\Owner\BillingController;
+use App\Models\Court;
 use Illuminate\Support\Facades\Route;
 
-Route::view('/', 'welcome')->name('home');
+// Public landing page. Passes the list of bookable sports so the hero search
+// dropdown reflects what's actually available.
+Route::get('/', function () {
+    return view('welcome', [
+        'sports' => Court::query()->bookable()->orderBy('sport')->pluck('sport')->unique()->values(),
+    ]);
+})->name('home');
+
+// Public "for owners" marketing page (funnels into owner registration).
+Route::view('/for-business', 'for-business')->name('for-business');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::view('dashboard', 'dashboard')->name('dashboard');

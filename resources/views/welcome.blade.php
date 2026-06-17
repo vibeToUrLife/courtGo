@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
         @include('partials.head')
     </head>
@@ -15,7 +15,11 @@
                     {{ config('app.name') }}
                 </a>
 
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-1 sm:gap-3">
+                    <a href="{{ route('for-business') }}"
+                       class="hidden rounded-lg px-4 py-2 text-sm font-medium text-zinc-700 hover:text-zinc-900 sm:inline-block dark:text-zinc-300 dark:hover:text-white">
+                        For owners
+                    </a>
                     @auth
                         <a href="{{ route('dashboard') }}" wire:navigate
                            class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
@@ -36,7 +40,7 @@
         </header>
 
         {{-- Hero --}}
-        <section class="mx-auto max-w-6xl px-6 py-20 text-center sm:py-28">
+        <section class="mx-auto max-w-6xl px-6 py-16 text-center sm:py-24">
             <span class="inline-flex items-center gap-2 rounded-full border border-zinc-200 px-3 py-1 text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
                 <span class="size-2 rounded-full bg-emerald-500"></span>
                 Sports court booking, made simple
@@ -51,24 +55,67 @@
                 and pay securely — no phone calls, no waiting.
             </p>
 
-            <div class="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                @auth
-                    <a href="{{ route('courts.browse') }}" wire:navigate
-                       class="w-full rounded-lg bg-blue-600 px-6 py-3 text-base font-medium text-white hover:bg-blue-700 sm:w-auto">
-                        Find a court
-                    </a>
-                @else
-                    <a href="{{ route('register') }}" wire:navigate
-                       class="w-full rounded-lg bg-blue-600 px-6 py-3 text-base font-medium text-white hover:bg-blue-700 sm:w-auto">
-                        Find a court
-                    </a>
-                    <a href="{{ route('register') }}" wire:navigate
-                       class="w-full rounded-lg border border-zinc-300 px-6 py-3 text-base font-medium text-zinc-800 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900 sm:w-auto">
-                        List your venue →
-                    </a>
-                @endauth
-            </div>
+            {{-- Search bar: sport + location + date → Find a Court --}}
+            <form method="GET" action="{{ route('courts.browse') }}"
+                  class="mx-auto mt-10 grid max-w-3xl grid-cols-1 gap-3 rounded-2xl border border-zinc-200 bg-white p-4 text-left shadow-sm sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end dark:border-zinc-800 dark:bg-zinc-900">
+                <label class="block">
+                    <span class="mb-1 block text-xs font-medium text-zinc-500">Sport</span>
+                    <select name="sport"
+                            class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950">
+                        <option value="">Any sport</option>
+                        @foreach ($sports as $s)
+                            <option value="{{ $s }}">{{ $s }}</option>
+                        @endforeach
+                    </select>
+                </label>
+
+                <label class="block">
+                    <span class="mb-1 block text-xs font-medium text-zinc-500">Location</span>
+                    <input type="text" name="city" placeholder="City, e.g. Subang Jaya"
+                           class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950" />
+                </label>
+
+                <label class="block">
+                    <span class="mb-1 block text-xs font-medium text-zinc-500">Date</span>
+                    <input type="date" name="date" min="{{ now()->toDateString() }}"
+                           class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950" />
+                </label>
+
+                <button type="submit"
+                        class="rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                    Find a court
+                </button>
+            </form>
+
+            @guest
+                <p class="mt-3 text-xs text-zinc-500">Log in or sign up to see live availability and book your slot.</p>
+                <p class="mt-4 text-sm text-zinc-500">
+                    Own a venue?
+                    <a href="{{ route('for-business') }}" class="font-medium text-blue-600 hover:underline dark:text-blue-400">List your venue →</a>
+                </p>
+            @endguest
         </section>
+
+        {{-- Browse by sport — only sports that actually have bookable venues, so no tile is a dead end. --}}
+        @if ($sports->isNotEmpty())
+            @php($sportIcons = [
+                'Badminton' => 'sparkles', 'Futsal' => 'trophy', 'Football' => 'trophy',
+                'Pickleball' => 'sparkles', 'Tennis' => 'trophy', 'Basketball' => 'trophy',
+                'Table Tennis' => 'sparkles', 'Squash' => 'trophy',
+            ])
+            <section class="mx-auto max-w-6xl px-6 pb-8">
+                <h2 class="text-center text-sm font-semibold uppercase tracking-wide text-zinc-500">Browse by sport</h2>
+                <div class="mt-6 flex flex-wrap justify-center gap-3">
+                    @foreach ($sports as $s)
+                        <a href="{{ route('courts.browse', ['sport' => $s]) }}"
+                           class="flex items-center gap-2 rounded-full border border-zinc-200 px-4 py-2 text-sm font-medium hover:border-blue-400 hover:text-blue-600 dark:border-zinc-800 dark:hover:text-blue-400">
+                            <flux:icon :name="$sportIcons[$s] ?? 'map-pin'" class="size-4 text-blue-500" />
+                            {{ $s }}
+                        </a>
+                    @endforeach
+                </div>
+            </section>
+        @endif
 
         {{-- How it works (for players) --}}
         <section class="border-t border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/40">
@@ -105,7 +152,7 @@
                         We charge a simple monthly subscription — never a cut of your bookings.
                     </p>
                     <div class="mt-8">
-                        <a href="{{ route('register') }}" wire:navigate
+                        <a href="{{ route('for-business') }}"
                            class="inline-block rounded-lg bg-blue-600 px-6 py-3 text-base font-medium text-white hover:bg-blue-700">
                             List your venue
                         </a>
@@ -139,7 +186,10 @@
                     </span>
                     <span class="font-medium text-zinc-700 dark:text-zinc-300">{{ config('app.name') }}</span>
                 </div>
-                <span>&copy; {{ now()->year }} {{ config('app.name') }}. Book courts across Malaysia.</span>
+                <div class="flex items-center gap-4">
+                    <a href="{{ route('for-business') }}" class="hover:text-zinc-700 dark:hover:text-zinc-300">For owners</a>
+                    <span>&copy; {{ now()->year }} {{ config('app.name') }}. Book courts across Malaysia.</span>
+                </div>
             </div>
         </footer>
 

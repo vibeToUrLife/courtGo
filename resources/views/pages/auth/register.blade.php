@@ -1,12 +1,22 @@
+@php($asOwner = request('as') === 'owner')
 <x-layouts::auth :title="__('Register')">
     <div class="flex flex-col gap-6">
-        <x-auth-header :title="__('Create an account')" :description="__('Enter your details below to create your account')" />
+        <x-auth-header
+            :title="$asOwner ? __('Create your owner account') : __('Create an account')"
+            :description="$asOwner
+                ? __('List your venue, set your schedule, and start taking bookings.')
+                : __('Enter your details below to create your account')" />
 
         <!-- Session Status -->
         <x-auth-session-status class="text-center" :status="session('status')" />
 
         <form method="POST" action="{{ route('register.store') }}" class="flex flex-col gap-6">
             @csrf
+
+            {{-- Sign up as a court owner when arriving from the "for business" page. --}}
+            @if ($asOwner)
+                <input type="hidden" name="role" value="owner">
+            @endif
             <!-- Name -->
             <flux:input
                 name="name"

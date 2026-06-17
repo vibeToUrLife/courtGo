@@ -24,10 +24,16 @@ class CreateNewUser implements CreatesNewUsers
             'password' => $this->passwordRules(),
         ])->validate();
 
+        // Visitors may sign up as a court owner from the "for business" page.
+        // Only 'owner' is ever honoured here — never 'admin' — so nobody can
+        // self-assign elevated access; anything else defaults to a customer.
+        $role = ($input['role'] ?? null) === 'owner' ? 'owner' : 'customer';
+
         return User::create([
             'name' => $input['name'],
             'email' => $input['email'],
             'password' => $input['password'],
+            'role' => $role,
         ]);
     }
 }

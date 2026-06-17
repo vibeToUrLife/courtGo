@@ -12,4 +12,12 @@
 @fonts
 
 @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+<script>
+    // Default the whole app to light mode unless the visitor has explicitly
+    // picked an appearance before. (Flux otherwise follows the OS setting.)
+    if (! window.localStorage.getItem('flux.appearance')) {
+        window.localStorage.setItem('flux.appearance', 'light');
+    }
+</script>
 @fluxAppearance
