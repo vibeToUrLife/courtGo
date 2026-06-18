@@ -37,6 +37,29 @@ test('the wizard creates numbered courts that share one schedule', function () {
     expect($venue->courts->every(fn ($court) => $court->sessionTemplates()->count() === 1))->toBeTrue();
 });
 
+test('the wizard accepts a slot that ends at midnight', function () {
+    $owner = User::factory()->create(['role' => UserRole::Owner]);
+    $venue = Venue::factory()->for($owner, 'owner')->create();
+
+    Livewire::actingAs($owner)
+        ->test(Courts::class, ['venue' => $venue])
+        ->call('startWizard')
+        ->set('sport', 'Badminton')
+        ->set('count', 1)
+        ->call('toStep2')
+        ->set('scheduleMode', 'same')
+        ->call('toStep3')
+        ->set('sessions.0.from_day', 5)
+        ->set('sessions.0.to_day', 5)
+        ->set('sessions.0.start_time', '20:00')
+        ->set('sessions.0.end_time', '00:00') // midnight
+        ->set('sessions.0.price', 40)
+        ->call('create')
+        ->assertHasNoErrors();
+
+    expect($venue->courts()->first()->sessionTemplates()->count())->toBe(1);
+});
+
 test('clearing the court count no longer crashes and defaults to one court', function () {
     $owner = User::factory()->create(['role' => UserRole::Owner]);
     $venue = Venue::factory()->for($owner, 'owner')->create();

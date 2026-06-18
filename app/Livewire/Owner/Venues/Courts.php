@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Owner\Venues;
 
+use App\Concerns\HandlesScheduleTimes;
 use App\Models\Venue;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +17,7 @@ use Livewire\Component;
 class Courts extends Component
 {
     use AuthorizesRequests;
+    use HandlesScheduleTimes;
 
     /** 0 = Sunday … 6 = Saturday (matches Carbon's dayOfWeek). */
     public const DAYS = [
@@ -264,7 +266,8 @@ class Courts extends Component
     private function validateSchedule(array $rows, int $courtIndex): void
     {
         foreach ($rows as $j => $row) {
-            if ($row['end_time'] <= $row['start_time']) {
+            // A 00:00 end means midnight (end-of-day); any other end must be later.
+            if ($this->slotMinutes($row['end_time'], isEnd: true) <= $this->slotMinutes($row['start_time'])) {
                 throw ValidationException::withMessages([
                     $this->fieldKey($courtIndex, $j, 'end_time') => 'End time must be after start time.',
                 ]);
@@ -273,16 +276,19 @@ class Courts extends Component
 
         $byDay = [];
         foreach ($rows as $j => $row) {
+            $start = $this->slotMinutes($row['start_time']);
+            $end = $this->slotMinutes($row['end_time'], isEnd: true);
+
             foreach ($this->daysInRange($row) as $day) {
                 foreach ($byDay[$day] ?? [] as $existing) {
-                    if ($row['start_time'] < $existing['end'] && $row['end_time'] > $existing['start']) {
+                    if ($start < $existing['end'] && $end > $existing['start']) {
                         throw ValidationException::withMessages([
                             $this->fieldKey($courtIndex, $j, 'start_time') => 'This overlaps another slot on the same day.',
                         ]);
                     }
                 }
 
-                $byDay[$day][] = ['start' => $row['start_time'], 'end' => $row['end_time']];
+                $byDay[$day][] = ['start' => $start, 'end' => $end];
             }
         }
     }

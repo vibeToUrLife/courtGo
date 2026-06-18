@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Owner\Courts;
 
+use App\Concerns\HandlesScheduleTimes;
 use App\Models\Court;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Validation\ValidationException;
@@ -14,6 +15,7 @@ use Livewire\Component;
 class Schedule extends Component
 {
     use AuthorizesRequests;
+    use HandlesScheduleTimes;
 
     /** 0 = Sunday … 6 = Saturday (matches Carbon's dayOfWeek). */
     public const DAYS = [
@@ -51,21 +53,28 @@ class Schedule extends Component
         $validated = $this->validate([
             'day_of_week' => 'required|integer|between:0,6',
             'start_time' => 'required|date_format:H:i',
-            'end_time' => 'required|date_format:H:i|after:start_time',
+            'end_time' => 'required|date_format:H:i',
             'price' => 'required|numeric|min:0',
         ]);
 
-        // Reject sessions that overlap an existing active session on the same weekday.
-        // Times are normalised to H:i:s so the string comparison is correct.
-        $start = $validated['start_time'].':00';
-        $end = $validated['end_time'].':00';
+        // A 00:00 end means midnight (end-of-day); any other end must be later.
+        $start = $this->slotMinutes($validated['start_time']);
+        $end = $this->slotMinutes($validated['end_time'], isEnd: true);
 
+        if ($end <= $start) {
+            throw ValidationException::withMessages([
+                'end_time' => 'End time must be after start time.',
+            ]);
+        }
+
+        // Reject sessions that overlap an existing active session on the same weekday
+        // (compared in minutes so a midnight end is handled correctly).
         $overlaps = $this->court->sessionTemplates()
             ->where('is_active', true)
             ->where('day_of_week', $validated['day_of_week'])
-            ->where('start_time', '<', $end)
-            ->where('end_time', '>', $start)
-            ->exists();
+            ->get()
+            ->contains(fn ($existing) => $start < $this->slotMinutes((string) $existing->end_time, isEnd: true)
+                && $end > $this->slotMinutes((string) $existing->start_time));
 
         if ($overlaps) {
             throw ValidationException::withMessages([
