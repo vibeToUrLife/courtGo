@@ -18,7 +18,7 @@
 @elseif ($preview['state'] === 'mismatch')
     <div class="rounded-lg bg-amber-50 dark:bg-amber-900/20 p-4">
         <flux:text class="text-sm font-medium text-amber-700 dark:text-amber-400">
-            ⚠ This range doesn't divide evenly into {{ $hours }}-hour slots
+            ⚠ This time range doesn't divide evenly into equal slots — adjust the window or the slot length.
         </flux:text>
     </div>
 @endif

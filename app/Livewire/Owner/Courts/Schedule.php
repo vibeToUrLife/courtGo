@@ -70,8 +70,10 @@ class Schedule extends Component
         $slots = $this->buildSlots($validated['start_time'], $validated['end_time'], (float) $validated['hours_per_slot']);
 
         if ($slots === null) {
+            $label = $this->slotLengthLabel((float) $validated['hours_per_slot']);
+
             throw ValidationException::withMessages([
-                'hours_per_slot' => "That time range doesn't divide evenly into {$validated['hours_per_slot']}-hour slots.",
+                'hours_per_slot' => "That time range doesn't divide evenly into {$label} slots.",
             ]);
         }
 
@@ -144,6 +146,8 @@ class Schedule extends Component
                 ->groupBy('day_of_week'),
             'blockedDates' => $this->court->blockedDates()->orderBy('date')->get(),
             'days' => self::DAYS,
+            'times' => $this->timeOptions(),
+            'endTimes' => $this->endTimeOptions(),
             'preview' => $this->slotPreview($this->start_time, $this->end_time, $this->hours_per_slot),
         ]);
     }

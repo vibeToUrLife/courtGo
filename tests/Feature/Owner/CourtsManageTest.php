@@ -61,6 +61,86 @@ test('the wizard accepts a slot that ends at midnight', function () {
     expect($venue->courts()->first()->sessionTemplates()->count())->toBe(2);
 });
 
+test('the wizard splits each row into slots for every day in the range', function () {
+    $owner = User::factory()->create(['role' => UserRole::Owner]);
+    $venue = Venue::factory()->for($owner, 'owner')->create();
+
+    Livewire::actingAs($owner)
+        ->test(Courts::class, ['venue' => $venue])
+        ->call('startWizard')
+        ->set('sport', 'Badminton')
+        ->set('count', 1)
+        ->call('toStep2')
+        ->set('scheduleMode', 'same')
+        ->call('toStep3')
+        ->set('sessions.0.from_day', 1) // Mon
+        ->set('sessions.0.to_day', 5)   // Fri → 5 days
+        ->set('sessions.0.start_time', '18:00')
+        ->set('sessions.0.end_time', '22:00')
+        ->set('sessions.0.hours', 2)    // 4-hour window ÷ 2h = 2 slots/day
+        ->set('sessions.0.price', 40)
+        ->call('create')
+        ->assertHasNoErrors();
+
+    $court = $venue->courts()->first();
+    expect($court->sessionTemplates()->count())->toBe(10); // 2 slots × 5 days
+
+    $monday = $court->sessionTemplates()->where('day_of_week', 1)->orderBy('start_time')->get()
+        ->map(fn ($s) => substr((string) $s->start_time, 0, 5).'-'.substr((string) $s->end_time, 0, 5))->all();
+    expect($monday)->toBe(['18:00-20:00', '20:00-22:00']);
+});
+
+test('the wizard supports 30-minute slots', function () {
+    $owner = User::factory()->create(['role' => UserRole::Owner]);
+    $venue = Venue::factory()->for($owner, 'owner')->create();
+
+    Livewire::actingAs($owner)
+        ->test(Courts::class, ['venue' => $venue])
+        ->call('startWizard')
+        ->set('sport', 'Badminton')
+        ->set('count', 1)
+        ->call('toStep2')
+        ->set('scheduleMode', 'same')
+        ->call('toStep3')
+        ->set('sessions.0.from_day', 1)
+        ->set('sessions.0.to_day', 1)
+        ->set('sessions.0.start_time', '20:00')
+        ->set('sessions.0.end_time', '21:00')
+        ->set('sessions.0.hours', '0.5') // string, as the dropdown supplies
+        ->set('sessions.0.price', 40)
+        ->call('create')
+        ->assertHasNoErrors();
+
+    $slots = $venue->courts()->first()->sessionTemplates()->orderBy('start_time')->get()
+        ->map(fn ($s) => substr((string) $s->start_time, 0, 5).'-'.substr((string) $s->end_time, 0, 5))->all();
+    expect($slots)->toBe(['20:00-20:30', '20:30-21:00']);
+});
+
+test('the wizard rejects overlapping slots from different rows on a shared day', function () {
+    $owner = User::factory()->create(['role' => UserRole::Owner]);
+    $venue = Venue::factory()->for($owner, 'owner')->create();
+
+    Livewire::actingAs($owner)
+        ->test(Courts::class, ['venue' => $venue])
+        ->call('startWizard')
+        ->set('sport', 'Badminton')
+        ->set('count', 1)
+        ->call('toStep2')
+        ->set('scheduleMode', 'same')
+        ->call('toStep3')
+        ->call('addSession') // a second row
+        ->set('sessions.0.from_day', 1)->set('sessions.0.to_day', 3) // Mon–Wed
+        ->set('sessions.0.start_time', '18:00')->set('sessions.0.end_time', '20:00')
+        ->set('sessions.0.hours', 2)->set('sessions.0.price', 40)
+        ->set('sessions.1.from_day', 2)->set('sessions.1.to_day', 4) // Tue–Thu
+        ->set('sessions.1.start_time', '19:00')->set('sessions.1.end_time', '21:00') // overlaps row 0 on Tue/Wed
+        ->set('sessions.1.hours', 2)->set('sessions.1.price', 40)
+        ->call('create')
+        ->assertHasErrors();
+
+    expect($venue->courts()->count())->toBe(0);
+});
+
 test('the wizard rejects a window that does not divide evenly into slots', function () {
     $owner = User::factory()->create(['role' => UserRole::Owner]);
     $venue = Venue::factory()->for($owner, 'owner')->create();

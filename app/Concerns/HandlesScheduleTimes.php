@@ -20,6 +20,66 @@ trait HandlesScheduleTimes
         return ($isEnd && $total === 0) ? 24 * 60 : $total;
     }
 
+    /**
+     * Selectable times on the half-hour, "HH:MM" => "g:i A" label.
+     * Owners pick From/Until from this list instead of typing.
+     *
+     * @return array<string, string>
+     */
+    public function timeOptions(): array
+    {
+        $options = [];
+
+        for ($m = 0; $m < 24 * 60; $m += 30) {
+            $hour = intdiv($m, 60);
+            $minute = $m % 60;
+            $hour12 = $hour % 12 === 0 ? 12 : $hour % 12;
+            $label = sprintf('%d:%02d %s', $hour12, $minute, $hour < 12 ? 'AM' : 'PM');
+
+            if ($m === 0) {
+                $label .= ' (midnight)';
+            } elseif ($m === 12 * 60) {
+                $label .= ' (noon)';
+            }
+
+            $options[$this->minutesToTime($m)] = $label;
+        }
+
+        return $options;
+    }
+
+    /**
+     * Like timeOptions(), but for an END/"Until" picker: midnight moves to the
+     * bottom and is labelled "end of day" (it's treated as 1440 everywhere), so
+     * a venue open "8pm until midnight" finds midnight after 11:30 PM, not first.
+     *
+     * @return array<string, string>
+     */
+    public function endTimeOptions(): array
+    {
+        $options = $this->timeOptions();
+        unset($options['00:00']);
+        $options['00:00'] = '12:00 AM (end of day)';
+
+        return $options;
+    }
+
+    /** Human label for a slot length, e.g. "30-minute", "1-hour", "1.5-hour". */
+    public function slotLengthLabel(float $hours): string
+    {
+        $minutes = (int) round($hours * 60);
+
+        if ($minutes < 60) {
+            return $minutes.'-minute';
+        }
+
+        if ($minutes % 60 === 0) {
+            return intdiv($minutes, 60).'-hour';
+        }
+
+        return rtrim(rtrim(number_format($hours, 2), '0'), '.').'-hour';
+    }
+
     /** "H:i" for a minutes-since-midnight value (1440 → "00:00", i.e. midnight). */
     protected function minutesToTime(int $minutes): string
     {

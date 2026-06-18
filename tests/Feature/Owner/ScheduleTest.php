@@ -54,6 +54,25 @@ test('a time window is split into equal back-to-back slots', function () {
     expect($slots)->toBe(['18:00-20:00', '20:00-22:00']);
 });
 
+test('a 30-minute slot length is supported', function () {
+    [$owner, $court] = makeOwnerCourt();
+
+    Livewire::actingAs($owner)
+        ->test(Schedule::class, ['court' => $court])
+        ->set('day_of_week', 1)
+        ->set('start_time', '20:00')
+        ->set('end_time', '21:00')
+        ->set('hours_per_slot', 0.5) // 30 minutes → two slots
+        ->set('price', 40)
+        ->call('addSession')
+        ->assertHasNoErrors();
+
+    $slots = SessionTemplate::where('court_id', $court->id)->orderBy('start_time')->get()
+        ->map(fn ($s) => substr((string) $s->start_time, 0, 5).'-'.substr((string) $s->end_time, 0, 5))->all();
+
+    expect($slots)->toBe(['20:00-20:30', '20:30-21:00']);
+});
+
 test('a window that does not divide evenly into slots is rejected', function () {
     [$owner, $court] = makeOwnerCourt();
 

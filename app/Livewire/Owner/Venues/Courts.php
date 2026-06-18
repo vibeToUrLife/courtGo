@@ -286,8 +286,10 @@ class Courts extends Component
             $slots = $this->buildSlots($row['start_time'], $row['end_time'], (float) ($row['hours'] ?? 0));
 
             if ($slots === null) {
+                $label = $this->slotLengthLabel((float) ($row['hours'] ?? 0));
+
                 throw ValidationException::withMessages([
-                    $this->fieldKey($courtIndex, $j, 'hours') => "That time range doesn't divide evenly into {$row['hours']}-hour slots.",
+                    $this->fieldKey($courtIndex, $j, 'hours') => "That time range doesn't divide evenly into {$label} slots.",
                 ]);
             }
 
@@ -339,6 +341,8 @@ class Courts extends Component
         return view('livewire.owner.venues.courts', [
             'courts' => $this->venue->courts()->latest()->get(),
             'days' => self::DAYS,
+            'times' => $this->timeOptions(),
+            'endTimes' => $this->endTimeOptions(),
             'previewNames' => $this->generatedNames(),
         ]);
     }

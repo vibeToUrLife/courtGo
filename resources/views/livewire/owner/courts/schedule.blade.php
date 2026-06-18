@@ -11,7 +11,7 @@
          split it into back-to-back bookable slots. --}}
     <form wire:submit="addSession" class="space-y-4 rounded-xl border border-zinc-200 dark:border-zinc-700 p-5">
         <flux:heading size="lg">Add weekly slots</flux:heading>
-        <flux:text>Pick a time window and how long each slot is — we'll create the bookable slots, repeating every week on the day you choose.</flux:text>
+        <flux:text>Choose a time window and a slot length — we split the window into back-to-back bookable slots and repeat them every week on the day you pick.</flux:text>
 
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <flux:select wire:model.live="day_of_week" label="Day of week">
@@ -19,11 +19,23 @@
                     <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>
                 @endforeach
             </flux:select>
-            <flux:input wire:model.live="start_time" type="time" label="From" />
-            <flux:input wire:model.live="end_time" type="time" label="Until" />
-            <flux:input wire:model.live="hours_per_slot" type="number" step="0.5" min="0.5" max="24" label="Hours per slot" />
+            <flux:select wire:model.live="start_time" label="From">
+                <flux:select.option value="">Choose a time…</flux:select.option>
+                @foreach ($times as $value => $label)<flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>@endforeach
+            </flux:select>
+            <flux:select wire:model.live="end_time" label="Until">
+                <flux:select.option value="">Choose a time…</flux:select.option>
+                @foreach ($endTimes as $value => $label)<flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>@endforeach
+            </flux:select>
+            <flux:select wire:model.live="hours_per_slot" label="Slot length">
+                @foreach (config('courtgo.slot_lengths') as $value => $label)<flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>@endforeach
+            </flux:select>
             <flux:input wire:model.live="price" type="number" step="0.01" min="0" label="Price per slot (RM)" />
         </div>
+
+        <flux:text class="text-sm text-zinc-500">
+            The number of slots is worked out from your From–Until window and the slot length — see the preview below.
+        </flux:text>
 
         {{-- Live preview of the slots that will be created (matches the court preview). --}}
         <x-window-preview :preview="$preview" :hours="$hours_per_slot" />

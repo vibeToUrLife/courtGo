@@ -61,6 +61,25 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Slot lengths
+    |--------------------------------------------------------------------------
+    |
+    | How long each bookable slot can be, in hours (string keys avoid PHP's
+    | float-key casting). Shown as a dropdown when owners build a schedule.
+    |
+    */
+
+    'slot_lengths' => [
+        '0.5' => '30 minutes',
+        '1' => '1 hour',
+        '1.5' => '1.5 hours',
+        '2' => '2 hours',
+        '3' => '3 hours',
+        '4' => '4 hours',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Malaysian states & federal territories
     |--------------------------------------------------------------------------
     */
