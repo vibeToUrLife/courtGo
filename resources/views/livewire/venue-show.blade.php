@@ -27,33 +27,35 @@
         <div>
             <flux:heading size="lg">2. Pick a time &amp; an available court</flux:heading>
 
-            @if (empty($timeRows) || $courts->isEmpty())
+            @if (empty($timeColumns) || $courts->isEmpty())
                 <flux:text class="text-zinc-400 mt-2">No times available on this date. Try another day.</flux:text>
             @else
                 <flux:text class="text-sm text-zinc-500 mt-1">Click an available slot to book it.</flux:text>
 
+                {{-- Calendar: courts down the left, the owner's time slots across the top. --}}
                 <div class="mt-3 overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-700">
-                    <table class="w-full border-collapse text-sm">
+                    <table class="border-collapse text-sm">
                         <thead>
                             <tr class="bg-zinc-50 dark:bg-zinc-900">
-                                <th class="sticky left-0 z-10 bg-zinc-50 px-3 py-2 text-left font-medium dark:bg-zinc-900">Time</th>
-                                @foreach ($courts as $court)
-                                    <th class="whitespace-nowrap px-3 py-2 text-center font-medium">{{ $court->name }}</th>
+                                <th class="sticky left-0 z-10 bg-zinc-50 px-3 py-2 text-left font-medium dark:bg-zinc-900">Court</th>
+                                @foreach ($timeColumns as $col)
+                                    <th class="whitespace-nowrap px-3 py-2 text-center font-medium" title="{{ $col['display'] }}">{{ $col['start'] }}</th>
                                 @endforeach
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach ($timeRows as $row)
+                            @foreach ($courts as $court)
                                 <tr class="border-t border-zinc-100 dark:border-zinc-800">
                                     <td class="sticky left-0 z-10 whitespace-nowrap bg-white px-3 py-2 font-medium dark:bg-zinc-950">
-                                        {{ $row['display'] }}
+                                        {{ $court->name }}
                                     </td>
-                                    @foreach ($courts as $court)
-                                        @php($cell = $grid[$court->id][$row['key']] ?? null)
-                                        <td class="px-2 py-2 text-center align-middle">
+                                    @foreach ($timeColumns as $col)
+                                        @php($cell = $grid[$court->id][$col['key']] ?? null)
+                                        <td class="px-1.5 py-1.5 text-center align-middle">
                                             @if ($cell && $cell['state'] === 'available')
                                                 <a wire:key="slot-{{ $court->id }}-{{ $cell['session']->id }}"
                                                    href="{{ route('bookings.checkout', ['court' => $court, 'session' => $cell['session'], 'date' => $date]) }}"
+                                                   title="{{ $col['display'] }}"
                                                    class="inline-block w-full min-w-20 rounded-lg bg-blue-600 px-3 py-2 text-xs font-medium text-white hover:bg-blue-700">
                                                     RM {{ number_format($cell['session']->price, 0) }}
                                                 </a>

@@ -63,18 +63,19 @@ class VenueShow extends Component
 
         asort($rowStarts); // chronological by start time
 
-        $timeRows = [];
+        $timeColumns = [];
         foreach (array_keys($rowStarts) as $label) {
             [$start, $end] = explode('-', $label);
-            $timeRows[] = [
+            $timeColumns[] = [
                 'key' => $label,
+                'start' => Carbon::parse($start)->format('g:i A'),                                       // compact column header
                 'display' => Carbon::parse($start)->format('g:i A').' – '.Carbon::parse($end)->format('g:i A'),
             ];
         }
 
         return view('livewire.venue-show', [
             'courts' => $courts,
-            'timeRows' => $timeRows,
+            'timeColumns' => $timeColumns,
             'grid' => $grid,
         ]);
     }
