@@ -130,6 +130,45 @@ test('a customer can select multiple slots and pay for them in one go', function
         ->and((float) $customer->bookings()->sum('price'))->toBe(90.0); // 40 + 50
 });
 
+test('booking slots on one court leaves the other courts available in the grid', function () {
+    config()->set('cashier.secret', null); // demo confirms
+    $date = Carbon::parse('2026-07-06');
+
+    $owner = User::factory()->create(['role' => UserRole::Owner, 'connect_onboarded' => true]);
+    $owner->subscriptions()->create([
+        'type' => 'default', 'stripe_id' => 'sub_'.uniqid(), 'stripe_status' => 'active',
+        'stripe_price' => 'price_test', 'quantity' => 1,
+    ]);
+    $venue = Venue::factory()->for($owner, 'owner')->create();
+    $courtA = Court::factory()->for($venue)->create(['is_active' => true, 'name' => 'Court A']);
+    $courtB = Court::factory()->for($venue)->create(['is_active' => true, 'name' => 'Court B']);
+    foreach ([$courtA, $courtB] as $court) {
+        SessionTemplate::factory()->for($court)->create(['day_of_week' => $date->dayOfWeek, 'start_time' => '10:00', 'end_time' => '10:30', 'price' => 8]);
+        SessionTemplate::factory()->for($court)->create(['day_of_week' => $date->dayOfWeek, 'start_time' => '10:30', 'end_time' => '11:00', 'price' => 8]);
+    }
+
+    // A customer books BOTH of Court A's slots.
+    $aSessions = $courtA->sessionTemplates()->orderBy('start_time')->get();
+    Livewire::actingAs(User::factory()->create())
+        ->test(VenueShow::class, ['venue' => $venue])
+        ->set('date', $date->toDateString())
+        ->call('toggleSlot', $courtA->id, $aSessions[0]->id)
+        ->call('toggleSlot', $courtA->id, $aSessions[1]->id)
+        ->call('checkout')
+        ->assertRedirect(route('bookings.mine'));
+
+    // Another customer's grid: only Court A's slots are taken; Court B stays open.
+    $grid = Livewire::actingAs(User::factory()->create())
+        ->test(VenueShow::class, ['venue' => $venue])
+        ->set('date', $date->toDateString())
+        ->viewData('grid');
+
+    expect($grid[$courtA->id]['10:00-10:30']['state'])->toBe('taken')
+        ->and($grid[$courtA->id]['10:30-11:00']['state'])->toBe('taken')
+        ->and($grid[$courtB->id]['10:00-10:30']['state'])->toBe('available')
+        ->and($grid[$courtB->id]['10:30-11:00']['state'])->toBe('available');
+});
+
 test('selecting can be toggled off before booking', function () {
     $date = Carbon::parse('2026-07-06');
     [$venue, $courtA, , $sA] = liveTwoCourtVenue($date);

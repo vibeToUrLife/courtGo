@@ -27,7 +27,7 @@ class BookingPaymentService
     public function checkoutUrlForBookings(iterable $bookings, string $successUrl, string $cancelUrl): string
     {
         $bookings = collect($bookings)->values();
-        $bookings->load('court.venue.owner');
+        $bookings->each->loadMissing('court.venue.owner');
         $ownerAccountId = $bookings->first()->court->venue->owner->stripe_connect_account_id;
         $ids = $bookings->pluck('id')->implode(',');
 

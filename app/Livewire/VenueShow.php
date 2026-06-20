@@ -70,9 +70,10 @@ class VenueShow extends Component
             return null;
         }
 
-        // Real Stripe Checkout: one payment for all the slots.
+        // Real Stripe Checkout: one payment for all the slots. away() because
+        // we're sending the customer to an external (Stripe) URL.
         if (config('cashier.secret')) {
-            return redirect($payments->checkoutUrlForBookings(
+            return redirect()->away($payments->checkoutUrlForBookings(
                 $created,
                 route('bookings.cart.success'),
                 route('bookings.cart.cancel', ['bookings' => collect($created)->pluck('id')->implode(',')]),
