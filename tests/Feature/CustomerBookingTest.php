@@ -2,6 +2,7 @@
 
 use App\Enums\BookingStatus;
 use App\Enums\UserRole;
+use App\Livewire\BookingShow;
 use App\Livewire\MyBookings;
 use App\Livewire\VenueShow;
 use App\Models\Booking;
@@ -350,6 +351,33 @@ test('continue payment on a grouped row pays for all its held slots', function (
 
     expect($b1->fresh()->status)->toBe(BookingStatus::Confirmed)
         ->and($b2->fresh()->status)->toBe(BookingStatus::Confirmed);
+});
+
+test('a customer can open a booking and see its details', function () {
+    $customer = User::factory()->create();
+    $court = Court::factory()->create();
+    $date = Carbon::parse('2026-07-06')->toDateString();
+
+    // A two-slot booking made together.
+    $first = Booking::factory()->for($court)->create(['customer_id' => $customer->id, 'booking_date' => $date, 'booking_group' => 'g', 'start_time' => '10:00:00', 'end_time' => '10:30:00', 'price' => 8]);
+    Booking::factory()->for($court)->create(['customer_id' => $customer->id, 'booking_date' => $date, 'booking_group' => 'g', 'start_time' => '10:30:00', 'end_time' => '11:00:00', 'price' => 8]);
+
+    $this->actingAs($customer)
+        ->get(route('bookings.show', $first))
+        ->assertOk()
+        ->assertSee($court->venue->name)
+        ->assertSee($court->name)
+        ->assertSee('10:00 AM')
+        ->assertSee('11:00 AM')   // merged end of the block
+        ->assertSee('RM 16.00');  // total of the two slots
+});
+
+test('a customer cannot open another customer booking', function () {
+    $booking = Booking::factory()->create();
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('bookings.show', $booking))
+        ->assertForbidden();
 });
 
 test('a customer can resume payment for a pending booking', function () {

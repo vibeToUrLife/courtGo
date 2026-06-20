@@ -30,8 +30,8 @@
     @else
         <div class="space-y-3">
             @foreach ($groups as $group)
-                <div class="flex items-center justify-between gap-4 rounded-xl border border-zinc-200 dark:border-zinc-700 p-4" wire:key="group-{{ $group['ids'][0] }}">
-                    <div>
+                <div class="flex items-center justify-between gap-4 rounded-xl border border-zinc-200 dark:border-zinc-700 p-4 transition hover:border-blue-400" wire:key="group-{{ $group['ids'][0] }}">
+                    <a href="{{ route('bookings.show', $group['ids'][0]) }}" wire:navigate class="flex-1">
                         <div class="font-medium">{{ $group['court']->venue->name }} — {{ $group['court']->name }}</div>
                         <div class="text-sm text-zinc-500">
                             {{ $group['date']->format('D, d M Y') }} ·
@@ -45,7 +45,7 @@
                                 Pay before {{ $group['hold_expires_at']->format('g:i A') }} or the slot is released.
                             </div>
                         @endif
-                    </div>
+                    </a>
                     <div class="flex flex-col items-end gap-2">
                         @if ($group['status'] === 'confirmed')
                             <flux:badge color="green">Confirmed</flux:badge>

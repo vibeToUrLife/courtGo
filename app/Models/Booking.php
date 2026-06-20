@@ -70,4 +70,15 @@ class Booking extends Model
             && $this->hold_expires_at
             && $this->hold_expires_at->isPast();
     }
+
+    /** Which display bucket this booking falls in: confirmed | awaiting | expired | cancelled. */
+    public function displayStatus(): string
+    {
+        return match (true) {
+            $this->status === BookingStatus::Confirmed => 'confirmed',
+            $this->awaitingPayment() => 'awaiting',
+            $this->holdExpired() || $this->status === BookingStatus::Expired => 'expired',
+            default => 'cancelled',
+        };
+    }
 }

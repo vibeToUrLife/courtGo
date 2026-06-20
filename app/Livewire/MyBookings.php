@@ -2,9 +2,9 @@
 
 namespace App\Livewire;
 
+use App\Concerns\PaysBookingGroups;
 use App\Enums\BookingStatus;
 use App\Models\Booking;
-use App\Services\BookingPaymentService;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -15,39 +15,11 @@ use Livewire\Component;
 #[Title('My Bookings')]
 class MyBookings extends Component
 {
+    use PaysBookingGroups;
+
     /** all | confirmed | awaiting | cancelled */
     #[Url]
     public string $filter = 'all';
-
-    /** Pay (or resume payment) for every still-held slot in a grouped row, in one go. */
-    public function payGroup(array $ids, BookingPaymentService $payments)
-    {
-        $bookings = auth()->user()->bookings()
-            ->whereIn('id', $ids)
-            ->where('status', BookingStatus::Pending->value)
-            ->where('hold_expires_at', '>', now())
-            ->get();
-
-        if ($bookings->isEmpty()) {
-            session()->flash('booking_error', 'These holds have expired.');
-
-            return null;
-        }
-
-        if (config('cashier.secret')) {
-            return redirect()->away($payments->checkoutUrlForBookings(
-                $bookings,
-                route('bookings.cart.success'),
-                route('bookings.cart.cancel', ['bookings' => $bookings->pluck('id')->implode(',')]),
-            ));
-        }
-
-        foreach ($bookings as $booking) {
-            $booking->update(['status' => BookingStatus::Confirmed, 'payment_status' => 'paid', 'processed_at' => now()]);
-        }
-
-        return redirect()->route('bookings.mine')->with('booking_confirmed', true);
-    }
 
     public function render()
     {
@@ -83,7 +55,7 @@ class MyBookings extends Component
         $current = null;
 
         foreach ($bookings as $booking) {
-            $status = $this->displayStatus($booking);
+            $status = $booking->displayStatus();
 
             // Only merge slots booked in the SAME action (same booking_group) that
             // are also back-to-back on the same court, date and status.
@@ -135,16 +107,5 @@ class MyBookings extends Component
         usort($groups, fn ($a, $b) => $b['booked_at'] <=> $a['booked_at']);
 
         return $groups;
-    }
-
-    /** Which display bucket a booking falls in (used both to label and to group). */
-    private function displayStatus(Booking $booking): string
-    {
-        return match (true) {
-            $booking->status === BookingStatus::Confirmed => 'confirmed',
-            $booking->awaitingPayment() => 'awaiting',
-            $booking->holdExpired() || $booking->status === BookingStatus::Expired => 'expired',
-            default => 'cancelled',
-        };
     }
 }

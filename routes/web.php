@@ -41,6 +41,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/bookings/{booking}/success', [BookingController::class, 'success'])->name('bookings.success');
     Route::get('/bookings/{booking}/cancel', [BookingController::class, 'cancel'])->name('bookings.cancel');
     Route::get('/my-bookings', \App\Livewire\MyBookings::class)->name('bookings.mine');
+    Route::get('/bookings/{booking}', \App\Livewire\BookingShow::class)->name('bookings.show');
 });
 
 // Owner area — managing venues and courts (owners only)
