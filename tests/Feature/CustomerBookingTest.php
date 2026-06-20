@@ -293,7 +293,7 @@ test('consecutive slots booked together are grouped into one row in my bookings'
         'start_time' => '14:00:00', 'end_time' => '14:30:00', 'price' => 8,
     ]);
 
-    $groups = Livewire::actingAs($customer)->test(MyBookings::class)->viewData('otherGroups');
+    $groups = Livewire::actingAs($customer)->test(MyBookings::class)->viewData('todayGroups');
 
     expect($groups)->toHaveCount(2); // the three back-to-back slots merge into one
 
@@ -313,7 +313,7 @@ test('back-to-back slots booked in separate actions are NOT grouped', function (
     Booking::factory()->for($court)->create(['customer_id' => $customer->id, 'booking_date' => $date, 'booking_group' => 'first', 'start_time' => '10:00:00', 'end_time' => '12:00:00', 'price' => 16]);
     Booking::factory()->for($court)->create(['customer_id' => $customer->id, 'booking_date' => $date, 'booking_group' => 'second', 'start_time' => '12:00:00', 'end_time' => '14:00:00', 'price' => 16]);
 
-    $groups = Livewire::actingAs($customer)->test(MyBookings::class)->viewData('otherGroups');
+    $groups = Livewire::actingAs($customer)->test(MyBookings::class)->viewData('todayGroups');
 
     expect($groups)->toHaveCount(2); // back-to-back but booked separately → two rows
 });
@@ -329,30 +329,32 @@ test('my bookings are ordered by when they were booked, newest first', function 
     Carbon::setTestNow(Carbon::parse('2026-06-20 10:00:00'));
     $newer = Booking::factory()->for($court)->create(['customer_id' => $customer->id, 'booking_date' => $date, 'booking_group' => 'b', 'start_time' => '08:00:00', 'end_time' => '09:00:00']);
 
-    $groups = Livewire::actingAs($customer)->test(MyBookings::class)->viewData('otherGroups');
+    $groups = Livewire::actingAs($customer)->test(MyBookings::class)->viewData('todayGroups');
     Carbon::setTestNow();
 
     expect($groups[0]['ids'])->toContain($newer->id)  // most recently booked first…
         ->and($groups[1]['ids'])->toContain($older->id); // …even though its slot is earlier in the day
 });
 
-test('my bookings separates today from other dates', function () {
+test('my bookings separates what was booked today from what was booked earlier', function () {
     $customer = User::factory()->create();
     $court = Court::factory()->create();
 
+    // Booked 5 days ago, for a future play date.
+    Carbon::setTestNow(Carbon::parse('2026-06-15 09:00:00'));
+    $earlier = Booking::factory()->for($court)->create(['customer_id' => $customer->id, 'booking_group' => 'e', 'booking_date' => '2026-07-01', 'start_time' => '20:00:00', 'end_time' => '21:00:00']);
+
+    // Booked today (the play date is irrelevant to the grouping).
     Carbon::setTestNow(Carbon::parse('2026-06-20 09:00:00'));
-    $today = Carbon::today()->toDateString();
-    $future = Carbon::today()->addDays(5)->toDateString();
+    $madeToday = Booking::factory()->for($court)->create(['customer_id' => $customer->id, 'booking_group' => 't', 'booking_date' => '2026-07-05', 'start_time' => '20:00:00', 'end_time' => '21:00:00']);
 
-    Booking::factory()->for($court)->create(['customer_id' => $customer->id, 'booking_date' => $today, 'booking_group' => 't', 'start_time' => '20:00:00', 'end_time' => '21:00:00']);
-    Booking::factory()->for($court)->create(['customer_id' => $customer->id, 'booking_date' => $future, 'booking_group' => 'f', 'start_time' => '20:00:00', 'end_time' => '21:00:00']);
-
-    $component = Livewire::actingAs($customer)->test(MyBookings::class);
+    $component = Livewire::actingAs($customer)->test(MyBookings::class); // "now" = 2026-06-20
     Carbon::setTestNow();
 
     expect($component->viewData('todayGroups'))->toHaveCount(1)
+        ->and($component->viewData('todayGroups')[0]['ids'])->toContain($madeToday->id)
         ->and($component->viewData('otherGroups'))->toHaveCount(1)
-        ->and($component->viewData('todayGroups')[0]['date']->toDateString())->toBe($today);
+        ->and($component->viewData('otherGroups')[0]['ids'])->toContain($earlier->id);
 });
 
 test('the date filter limits my bookings to one date', function () {
@@ -366,10 +368,10 @@ test('the date filter limits my bookings to one date', function () {
 
     $component = Livewire::actingAs($customer)->test(MyBookings::class)->set('date', $d1);
 
-    // Only the d1 booking remains (both are future, so they fall under "other dates").
-    expect($component->viewData('otherGroups'))->toHaveCount(1)
-        ->and($component->viewData('otherGroups')[0]['date']->toDateString())->toBe($d1)
-        ->and($component->viewData('todayGroups'))->toHaveCount(0);
+    // Only the d1 booking remains; it was booked today, so it sits under "booked today".
+    expect($component->viewData('todayGroups'))->toHaveCount(1)
+        ->and($component->viewData('todayGroups')[0]['date']->toDateString())->toBe($d1)
+        ->and($component->viewData('otherGroups'))->toHaveCount(0);
 });
 
 test('continue payment on a grouped row pays for all its held slots', function () {

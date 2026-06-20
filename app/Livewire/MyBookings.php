@@ -52,10 +52,11 @@ class MyBookings extends Component
 
         $groups = $this->groupConsecutive($bookings);
 
-        // Surface today's bookings on their own, separate from every other date.
+        // Split by the day the booking was MADE (booked_at), not the play date:
+        // bookings made today on top, everything booked earlier below.
         return view('livewire.my-bookings', [
-            'todayGroups' => array_values(array_filter($groups, fn ($g) => $g['date']->isToday())),
-            'otherGroups' => array_values(array_filter($groups, fn ($g) => ! $g['date']->isToday())),
+            'todayGroups' => array_values(array_filter($groups, fn ($g) => $g['booked_at']->isToday())),
+            'otherGroups' => array_values(array_filter($groups, fn ($g) => ! $g['booked_at']->isToday())),
         ]);
     }
 

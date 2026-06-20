@@ -36,7 +36,7 @@
     @else
         @if (! empty($todayGroups))
             <div class="space-y-3">
-                <flux:heading size="lg">Today</flux:heading>
+                <flux:heading size="lg">Booked today</flux:heading>
                 @foreach ($todayGroups as $group)
                     @include('partials.booking-group-card', ['group' => $group])
                 @endforeach
@@ -45,7 +45,7 @@
 
         @if (! empty($otherGroups))
             <div class="space-y-3">
-                <flux:heading size="lg">{{ empty($todayGroups) ? 'Bookings' : 'Other dates' }}</flux:heading>
+                <flux:heading size="lg">{{ empty($todayGroups) ? 'Bookings' : 'Booked earlier' }}</flux:heading>
                 @foreach ($otherGroups as $group)
                     @include('partials.booking-group-card', ['group' => $group])
                 @endforeach
