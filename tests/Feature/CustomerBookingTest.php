@@ -93,6 +93,45 @@ test('the venue page shows a bookable calendar grid for the chosen date', functi
         ->assertSee('RM 40');               // a selectable slot
 });
 
+test('the venue page waits for a date before showing the calendar', function () {
+    $date = Carbon::parse('2026-07-06');
+    $session = liveCourtSession($date);
+
+    Livewire::actingAs(User::factory()->create())
+        ->test(VenueShow::class, ['venue' => $session->court->venue])
+        ->assertSet('date', '')                  // no default date
+        ->assertSee('Choose a date above')       // a prompt, not the calendar
+        ->assertDontSee($session->court->name)
+        ->set('date', $date->toDateString())     // the customer picks a date
+        ->assertSee($session->court->name)       // now the calendar appears
+        ->assertSee('RM 40');
+});
+
+test('time slots that have already started today are hidden, not shown as booked', function () {
+    Carbon::setTestNow(Carbon::parse('2026-07-06 14:00:00')); // Monday, 2pm
+    $date = Carbon::parse('2026-07-06');
+
+    $owner = User::factory()->create(['role' => UserRole::Owner, 'connect_onboarded' => true]);
+    $owner->subscriptions()->create([
+        'type' => 'default', 'stripe_id' => 'sub_'.uniqid(), 'stripe_status' => 'active',
+        'stripe_price' => 'price_test', 'quantity' => 1,
+    ]);
+    $venue = Venue::factory()->for($owner, 'owner')->create();
+    $court = Court::factory()->for($venue)->create(['is_active' => true]);
+    SessionTemplate::factory()->for($court)->create(['day_of_week' => $date->dayOfWeek, 'start_time' => '10:00', 'end_time' => '11:00', 'price' => 8]); // past
+    SessionTemplate::factory()->for($court)->create(['day_of_week' => $date->dayOfWeek, 'start_time' => '16:00', 'end_time' => '17:00', 'price' => 8]); // future
+
+    $grid = Livewire::actingAs(User::factory()->create())
+        ->test(VenueShow::class, ['venue' => $venue])
+        ->set('date', $date->toDateString())
+        ->viewData('grid');
+
+    Carbon::setTestNow(); // reset before asserting
+
+    expect($grid[$court->id] ?? [])->not->toHaveKey('10:00-11:00') // past slot hidden
+        ->and($grid[$court->id])->toHaveKey('16:00-17:00');         // future slot shown
+});
+
 test('a booked slot shows as taken in the calendar grid', function () {
     config()->set('cashier.secret', null); // demo mode confirms the booking
     $date = Carbon::parse('2026-07-06');

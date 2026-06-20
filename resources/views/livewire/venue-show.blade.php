@@ -23,11 +23,13 @@
         {{-- Step 1: pick a date --}}
         <flux:input type="date" wire:model.live="date" label="1. Choose a date" :min="now()->toDateString()" />
 
-        {{-- Step 2: pick a time + an available court from the calendar grid --}}
+        {{-- Step 2: pick a time + an available court (only after a date is chosen) --}}
         <div>
             <flux:heading size="lg">2. Pick a time &amp; an available court</flux:heading>
 
-            @if (empty($timeColumns) || $courts->isEmpty())
+            @if ($date === '')
+                <flux:text class="text-zinc-400 mt-2">Choose a date above to see the available times.</flux:text>
+            @elseif (empty($timeColumns) || $courts->isEmpty())
                 <flux:text class="text-zinc-400 mt-2">No times available on this date. Try another day.</flux:text>
             @else
                 <flux:text class="text-sm text-zinc-500 mt-1">Tap the slots you want — then book and pay for them all at once.</flux:text>

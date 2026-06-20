@@ -31,10 +31,7 @@ class VenueShow extends Component
     public function mount(Venue $venue): void
     {
         $this->venue = $venue;
-
-        if ($this->date === '') {
-            $this->date = Carbon::tomorrow()->toDateString();
-        }
+        // No default date — the customer chooses one first, then the calendar shows.
     }
 
     /** Changing the date clears the selection — the slots differ. */
@@ -102,16 +99,31 @@ class VenueShow extends Component
 
     public function render()
     {
+        // No date chosen yet → no calendar (the view shows a "choose a date" prompt).
+        if ($this->date === '') {
+            return view('livewire.venue-show', [
+                'courts' => collect(),
+                'timeColumns' => [],
+                'grid' => [],
+                'selectedSummary' => collect(),
+                'selectedTotal' => 0.0,
+            ]);
+        }
+
         $availability = app(AvailabilityService::class);
         $date = Carbon::parse($this->date);
         $weekday = $date->dayOfWeek;
 
+        // For today, hide slots whose start time has already passed.
+        $isToday = $date->isToday();
+        $now = Carbon::now()->format('H:i:s');
+
         $courts = $this->venue->courts()->bookable()->orderBy('name')->get();
 
-        // Build a calendar grid: rows = time slots, columns = courts. Each cell is
+        // Build a calendar grid: columns = time slots, rows = courts. Each cell is
         // bookable (available) or shown as taken, so customers click a free slot.
         $grid = [];      // court_id => [slot label => ['state' => ..., 'session' => ...]]
-        $rowStarts = []; // slot label => start "HH:MM", for chronological row order
+        $rowStarts = []; // slot label => start "HH:MM", for chronological column order
 
         foreach ($courts as $court) {
             $available = $availability->availableSessions($court, $date)
@@ -124,6 +136,11 @@ class VenueShow extends Component
                 ->get();
 
             foreach ($scheduled as $session) {
+                // Skip slots that have already started today — don't show them at all.
+                if ($isToday && (string) $session->start_time <= $now) {
+                    continue;
+                }
+
                 $label = $this->slotLabel($session);
                 $rowStarts[$label] = substr((string) $session->start_time, 0, 5);
                 $grid[$court->id][$label] = [

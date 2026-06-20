@@ -39,13 +39,14 @@ test('the browse page shows price-from and live availability for the chosen date
         ->assertSee('1 session(s) available');
 });
 
-test('the chosen date carries through to the venue link', function () {
+test('the venue link does not pre-fill a date (the customer chooses one there)', function () {
     $date = Carbon::today()->addDays(8);
     $venue = browseLiveVenue($date);
 
     $this->actingAs(User::factory()->create())
         ->get(route('courts.browse', ['date' => $date->toDateString()]))
-        ->assertSee(route('venues.show', ['venue' => $venue, 'date' => $date->toDateString()]), escape: false);
+        ->assertSee(route('venues.show', ['venue' => $venue]), escape: false)
+        ->assertDontSee(route('venues.show', ['venue' => $venue, 'date' => $date->toDateString()]), escape: false);
 });
 
 test('the browse page filters venues by state', function () {

@@ -28,7 +28,7 @@
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             @foreach ($venues as $venue)
                 @php($summary = $summaries[$venue->id])
-                <a href="{{ route('venues.show', ['venue' => $venue, 'date' => $displayDate->toDateString()]) }}"
+                <a href="{{ route('venues.show', ['venue' => $venue]) }}"
                    wire:navigate wire:key="venue-{{ $venue->id }}"
                    class="flex flex-col overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700 hover:border-blue-400 transition">
                     @if ($venue->imageUrl())
