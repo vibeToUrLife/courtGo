@@ -292,7 +292,7 @@ test('consecutive slots booked together are grouped into one row in my bookings'
         'start_time' => '14:00:00', 'end_time' => '14:30:00', 'price' => 8,
     ]);
 
-    $groups = Livewire::actingAs($customer)->test(MyBookings::class)->viewData('groups');
+    $groups = Livewire::actingAs($customer)->test(MyBookings::class)->viewData('otherGroups');
 
     expect($groups)->toHaveCount(2); // the three back-to-back slots merge into one
 
@@ -312,7 +312,7 @@ test('back-to-back slots booked in separate actions are NOT grouped', function (
     Booking::factory()->for($court)->create(['customer_id' => $customer->id, 'booking_date' => $date, 'booking_group' => 'first', 'start_time' => '10:00:00', 'end_time' => '12:00:00', 'price' => 16]);
     Booking::factory()->for($court)->create(['customer_id' => $customer->id, 'booking_date' => $date, 'booking_group' => 'second', 'start_time' => '12:00:00', 'end_time' => '14:00:00', 'price' => 16]);
 
-    $groups = Livewire::actingAs($customer)->test(MyBookings::class)->viewData('groups');
+    $groups = Livewire::actingAs($customer)->test(MyBookings::class)->viewData('otherGroups');
 
     expect($groups)->toHaveCount(2); // back-to-back but booked separately → two rows
 });
@@ -328,11 +328,47 @@ test('my bookings are ordered by when they were booked, newest first', function 
     Carbon::setTestNow(Carbon::parse('2026-06-20 10:00:00'));
     $newer = Booking::factory()->for($court)->create(['customer_id' => $customer->id, 'booking_date' => $date, 'booking_group' => 'b', 'start_time' => '08:00:00', 'end_time' => '09:00:00']);
 
-    $groups = Livewire::actingAs($customer)->test(MyBookings::class)->viewData('groups');
+    $groups = Livewire::actingAs($customer)->test(MyBookings::class)->viewData('otherGroups');
     Carbon::setTestNow();
 
     expect($groups[0]['ids'])->toContain($newer->id)  // most recently booked first…
         ->and($groups[1]['ids'])->toContain($older->id); // …even though its slot is earlier in the day
+});
+
+test('my bookings separates today from other dates', function () {
+    $customer = User::factory()->create();
+    $court = Court::factory()->create();
+
+    Carbon::setTestNow(Carbon::parse('2026-06-20 09:00:00'));
+    $today = Carbon::today()->toDateString();
+    $future = Carbon::today()->addDays(5)->toDateString();
+
+    Booking::factory()->for($court)->create(['customer_id' => $customer->id, 'booking_date' => $today, 'booking_group' => 't', 'start_time' => '20:00:00', 'end_time' => '21:00:00']);
+    Booking::factory()->for($court)->create(['customer_id' => $customer->id, 'booking_date' => $future, 'booking_group' => 'f', 'start_time' => '20:00:00', 'end_time' => '21:00:00']);
+
+    $component = Livewire::actingAs($customer)->test(MyBookings::class);
+    Carbon::setTestNow();
+
+    expect($component->viewData('todayGroups'))->toHaveCount(1)
+        ->and($component->viewData('otherGroups'))->toHaveCount(1)
+        ->and($component->viewData('todayGroups')[0]['date']->toDateString())->toBe($today);
+});
+
+test('the date filter limits my bookings to one date', function () {
+    $customer = User::factory()->create();
+    $court = Court::factory()->create();
+
+    $d1 = Carbon::parse('2026-07-06')->toDateString();
+    $d2 = Carbon::parse('2026-07-10')->toDateString();
+    Booking::factory()->for($court)->create(['customer_id' => $customer->id, 'booking_date' => $d1, 'booking_group' => 'a', 'start_time' => '10:00:00', 'end_time' => '11:00:00']);
+    Booking::factory()->for($court)->create(['customer_id' => $customer->id, 'booking_date' => $d2, 'booking_group' => 'b', 'start_time' => '10:00:00', 'end_time' => '11:00:00']);
+
+    $component = Livewire::actingAs($customer)->test(MyBookings::class)->set('date', $d1);
+
+    // Only the d1 booking remains (both are future, so they fall under "other dates").
+    expect($component->viewData('otherGroups'))->toHaveCount(1)
+        ->and($component->viewData('otherGroups')[0]['date']->toDateString())->toBe($d1)
+        ->and($component->viewData('todayGroups'))->toHaveCount(0);
 });
 
 test('continue payment on a grouped row pays for all its held slots', function () {

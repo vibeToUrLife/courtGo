@@ -6,13 +6,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class BlockedDate extends Model
+class VenueClosedDate extends Model
 {
-    /** @use HasFactory<\Database\Factories\BlockedDateFactory> */
+    /** @use HasFactory<\Database\Factories\VenueClosedDateFactory> */
     use HasFactory;
 
     protected $fillable = [
-        'court_id',
+        'venue_id',
         'date',
         'reason',
     ];
@@ -25,10 +25,11 @@ class BlockedDate extends Model
     }
 
     /**
-     * The court this blocked date belongs to.
+     * The venue this closed date (holiday) belongs to. Closing a date here
+     * closes every court in the venue for that day.
      */
-    public function court(): BelongsTo
+    public function venue(): BelongsTo
     {
-        return $this->belongsTo(Court::class);
+        return $this->belongsTo(Venue::class);
     }
 }

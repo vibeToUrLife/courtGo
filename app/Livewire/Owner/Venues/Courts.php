@@ -5,6 +5,7 @@ namespace App\Livewire\Owner\Venues;
 use App\Concerns\HandlesScheduleTimes;
 use App\Models\Venue;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -44,6 +45,10 @@ class Courts extends Component
     // Step 3: schedule rows. "same" uses $sessions; "different" uses $courtSessions[courtIndex].
     public array $sessions = [];
     public array $courtSessions = [];
+
+    // Venue holidays — a closed date hides every court in this venue that day.
+    public string $closed_date = '';
+    public string $closed_reason = '';
 
     public function mount(Venue $venue): void
     {
@@ -352,10 +357,45 @@ class Courts extends Component
         $court->delete();
     }
 
+    // ------------------------------------------------------ venue holidays
+
+    /** Close the whole venue (every court) on a date — e.g. a public holiday. */
+    public function addClosedDate(): void
+    {
+        $validated = $this->validate([
+            'closed_date' => 'required|date|after_or_equal:today',
+            'closed_reason' => 'nullable|string|max:255',
+        ], [], ['closed_date' => 'date', 'closed_reason' => 'reason']);
+
+        $date = Carbon::parse($validated['closed_date'])->toDateString();
+
+        // A venue can only be closed once per date. The date cast serialises with a
+        // time component, so match existing rows with whereDate (not an exact value).
+        // Update the reason if the date is already closed.
+        $existing = $this->venue->closedDates()->whereDate('date', $date)->first();
+
+        if ($existing) {
+            $existing->update(['reason' => $validated['closed_reason'] ?: null]);
+        } else {
+            $this->venue->closedDates()->create([
+                'date' => $date,
+                'reason' => $validated['closed_reason'] ?: null,
+            ]);
+        }
+
+        $this->reset('closed_date', 'closed_reason');
+    }
+
+    public function removeClosedDate(int $closedDateId): void
+    {
+        $this->venue->closedDates()->whereKey($closedDateId)->delete();
+    }
+
     public function render()
     {
         return view('livewire.owner.venues.courts', [
             'courts' => $this->venue->courts()->latest()->get(),
+            'closedDates' => $this->venue->closedDates()->orderBy('date')->get(),
             'weekdays' => config('courtgo.weekdays'),
             'times' => $this->timeOptions(),
             'endTimes' => $this->endTimeOptions(),

@@ -1,8 +1,8 @@
 <?php
 
-use App\Models\BlockedDate;
 use App\Models\Court;
 use App\Models\SessionTemplate;
+use App\Models\VenueClosedDate;
 use App\Services\AvailabilityService;
 use Illuminate\Support\Carbon;
 
@@ -49,14 +49,28 @@ test('it excludes inactive sessions', function () {
     expect(availability()->availableSessions($court, $date))->toHaveCount(0);
 });
 
-test('it returns nothing when the court is blocked on that date', function () {
+test('it returns nothing when the venue is closed on that date', function () {
     $date = Carbon::parse('2026-07-06');
     $court = Court::factory()->create();
 
     SessionTemplate::factory()->for($court)->create(['day_of_week' => $date->dayOfWeek]);
-    BlockedDate::factory()->for($court)->create(['date' => $date->toDateString()]);
+    VenueClosedDate::factory()->for($court->venue)->create(['date' => $date->toDateString()]);
 
     expect(availability()->availableSessions($court, $date))->toHaveCount(0);
+});
+
+test('a venue closed date hides every court in that venue', function () {
+    $date = Carbon::parse('2026-07-06');
+    $venue = \App\Models\Venue::factory()->create();
+    $courtA = Court::factory()->for($venue)->create();
+    $courtB = Court::factory()->for($venue)->create();
+
+    SessionTemplate::factory()->for($courtA)->create(['day_of_week' => $date->dayOfWeek]);
+    SessionTemplate::factory()->for($courtB)->create(['day_of_week' => $date->dayOfWeek]);
+    VenueClosedDate::factory()->for($venue)->create(['date' => $date->toDateString()]);
+
+    expect(availability()->availableSessions($courtA, $date))->toHaveCount(0)
+        ->and(availability()->availableSessions($courtB, $date))->toHaveCount(0);
 });
 
 test('it returns nothing for a past date', function () {

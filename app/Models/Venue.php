@@ -70,6 +70,15 @@ class Venue extends Model
     }
 
     /**
+     * Dates the whole venue is closed (holidays, maintenance) — every court is
+     * unbookable on these dates.
+     */
+    public function closedDates(): HasMany
+    {
+        return $this->hasMany(VenueClosedDate::class);
+    }
+
+    /**
      * Whether an admin has approved this venue to be visible to customers.
      */
     public function isApproved(): bool

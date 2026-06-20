@@ -72,14 +72,6 @@ class Court extends Model
     }
 
     /**
-     * Specific dates this court is closed.
-     */
-    public function blockedDates(): HasMany
-    {
-        return $this->hasMany(BlockedDate::class);
-    }
-
-    /**
      * Bookings made against this court.
      */
     public function bookings(): HasMany

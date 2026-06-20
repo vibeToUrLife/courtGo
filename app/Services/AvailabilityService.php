@@ -14,7 +14,7 @@ class AvailabilityService
      *
      * Availability =
      *     active session templates for that weekday
-     *   − dates the court is blocked
+     *   − dates the venue is closed (holidays — applies to every court)
      *   − slots already taken by an active booking (confirmed, or a pending hold that hasn't expired)
      *   − sessions whose start time has already passed (when the date is today)
      *   − past dates entirely
@@ -30,12 +30,12 @@ class AvailabilityService
             return collect();
         }
 
-        // If the whole court is closed that date, nothing is available.
-        $isBlocked = $court->blockedDates()
+        // If the venue is closed that date (a holiday), none of its courts are available.
+        $isClosed = $court->venue->closedDates()
             ->whereDate('date', $date->toDateString())
             ->exists();
 
-        if ($isBlocked) {
+        if ($isClosed) {
             return collect();
         }
 

@@ -2,7 +2,6 @@
 
 use App\Enums\UserRole;
 use App\Livewire\Owner\Courts\Schedule;
-use App\Models\BlockedDate;
 use App\Models\Court;
 use App\Models\SessionTemplate;
 use App\Models\User;
@@ -197,40 +196,6 @@ test('an owner can delete a session', function () {
         ->call('deleteSession', $session->id);
 
     expect(SessionTemplate::whereKey($session->id)->exists())->toBeFalse();
-});
-
-test('an owner can block a future date', function () {
-    [$owner, $court] = makeOwnerCourt();
-
-    Livewire::actingAs($owner)
-        ->test(Schedule::class, ['court' => $court])
-        ->set('block_date', Carbon::tomorrow()->toDateString())
-        ->set('block_reason', 'Public holiday')
-        ->call('blockDate')
-        ->assertHasNoErrors();
-
-    expect(BlockedDate::where('court_id', $court->id)->count())->toBe(1);
-});
-
-test('a past date cannot be blocked', function () {
-    [$owner, $court] = makeOwnerCourt();
-
-    Livewire::actingAs($owner)
-        ->test(Schedule::class, ['court' => $court])
-        ->set('block_date', Carbon::yesterday()->toDateString())
-        ->call('blockDate')
-        ->assertHasErrors(['block_date']);
-});
-
-test('an owner can unblock a date', function () {
-    [$owner, $court] = makeOwnerCourt();
-    $blocked = BlockedDate::factory()->for($court)->create();
-
-    Livewire::actingAs($owner)
-        ->test(Schedule::class, ['court' => $court])
-        ->call('unblockDate', $blocked->id);
-
-    expect(BlockedDate::whereKey($blocked->id)->exists())->toBeFalse();
 });
 
 test('a stranger cannot open another owners court schedule', function () {

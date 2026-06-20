@@ -5,6 +5,8 @@ use App\Livewire\Owner\Venues\Courts;
 use App\Models\Court;
 use App\Models\User;
 use App\Models\Venue;
+use App\Models\VenueClosedDate;
+use Illuminate\Support\Carbon;
 use Livewire\Livewire;
 
 test('the wizard creates numbered courts that share one schedule', function () {
@@ -487,4 +489,56 @@ test('an owner can add courts to a venue that is still pending approval', functi
         ->assertHasNoErrors();
 
     expect($venue->courts()->count())->toBe(1);
+});
+
+test('an owner can close the whole venue on a future date', function () {
+    $owner = User::factory()->create(['role' => UserRole::Owner]);
+    $venue = Venue::factory()->for($owner, 'owner')->create();
+
+    Livewire::actingAs($owner)
+        ->test(Courts::class, ['venue' => $venue])
+        ->set('closed_date', Carbon::tomorrow()->toDateString())
+        ->set('closed_reason', 'Public holiday')
+        ->call('addClosedDate')
+        ->assertHasNoErrors();
+
+    expect($venue->closedDates()->whereDate('date', Carbon::tomorrow()->toDateString())->count())->toBe(1);
+});
+
+test('a past date cannot be closed', function () {
+    $owner = User::factory()->create(['role' => UserRole::Owner]);
+    $venue = Venue::factory()->for($owner, 'owner')->create();
+
+    Livewire::actingAs($owner)
+        ->test(Courts::class, ['venue' => $venue])
+        ->set('closed_date', Carbon::yesterday()->toDateString())
+        ->call('addClosedDate')
+        ->assertHasErrors(['closed_date']);
+
+    expect($venue->closedDates()->count())->toBe(0);
+});
+
+test('closing the same date twice does not duplicate it', function () {
+    $owner = User::factory()->create(['role' => UserRole::Owner]);
+    $venue = Venue::factory()->for($owner, 'owner')->create();
+    $date = Carbon::tomorrow()->toDateString();
+
+    $component = Livewire::actingAs($owner)->test(Courts::class, ['venue' => $venue]);
+    $component->set('closed_date', $date)->call('addClosedDate');
+    $component->set('closed_date', $date)->set('closed_reason', 'Maintenance')->call('addClosedDate');
+
+    expect($venue->closedDates()->whereDate('date', $date)->count())->toBe(1)
+        ->and($venue->closedDates()->whereDate('date', $date)->first()->reason)->toBe('Maintenance');
+});
+
+test('an owner can reopen a closed date', function () {
+    $owner = User::factory()->create(['role' => UserRole::Owner]);
+    $venue = Venue::factory()->for($owner, 'owner')->create();
+    $closed = VenueClosedDate::factory()->for($venue)->create();
+
+    Livewire::actingAs($owner)
+        ->test(Courts::class, ['venue' => $venue])
+        ->call('removeClosedDate', $closed->id);
+
+    expect(VenueClosedDate::whereKey($closed->id)->exists())->toBeFalse();
 });

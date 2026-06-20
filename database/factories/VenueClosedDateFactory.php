@@ -2,14 +2,14 @@
 
 namespace Database\Factories;
 
-use App\Models\Court;
-use App\Models\BlockedDate;
+use App\Models\Venue;
+use App\Models\VenueClosedDate;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<BlockedDate>
+ * @extends Factory<VenueClosedDate>
  */
-class BlockedDateFactory extends Factory
+class VenueClosedDateFactory extends Factory
 {
     /**
      * Define the model's default state.
@@ -19,7 +19,7 @@ class BlockedDateFactory extends Factory
     public function definition(): array
     {
         return [
-            'court_id' => Court::factory(),
+            'venue_id' => Venue::factory(),
             'date' => fake()->unique()->dateTimeBetween('now', '+2 months')->format('Y-m-d'),
             'reason' => fake()->randomElement(['Public holiday', 'Maintenance', 'Private event']),
         ];

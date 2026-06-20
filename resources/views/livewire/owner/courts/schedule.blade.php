@@ -69,31 +69,10 @@
         </div>
     </div>
 
-    {{-- Blocked dates --}}
-    <div class="space-y-4">
-        <flux:heading size="lg">Closed dates</flux:heading>
-        <flux:text>Block specific dates (holidays, maintenance) so they can't be booked.</flux:text>
-
-        <form wire:submit="blockDate" class="flex flex-wrap items-end gap-3 rounded-xl border border-zinc-200 dark:border-zinc-700 p-5">
-            <flux:input wire:model="block_date" type="date" label="Date to close" />
-            <flux:input wire:model="block_reason" label="Reason (optional)" placeholder="Public holiday" />
-            <flux:button type="submit" variant="primary">Block date</flux:button>
-        </form>
-
-        @if ($blockedDates->isEmpty())
-            <flux:text class="text-zinc-400">No closed dates.</flux:text>
-        @else
-            <div class="flex flex-wrap gap-2">
-                @foreach ($blockedDates as $blocked)
-                    <div class="flex items-center gap-2 rounded-lg bg-amber-100 dark:bg-amber-900/40 px-3 py-1.5 text-sm" wire:key="blocked-{{ $blocked->id }}">
-                        <span>{{ $blocked->date->format('d M Y') }}</span>
-                        @if ($blocked->reason)
-                            <span class="text-zinc-500">({{ $blocked->reason }})</span>
-                        @endif
-                        <button type="button" class="text-red-500 hover:text-red-700" wire:click="unblockDate({{ $blocked->id }})">&times;</button>
-                    </div>
-                @endforeach
-            </div>
-        @endif
-    </div>
+    <flux:callout icon="information-circle">
+        <flux:callout.text>
+            Closing for a holiday? Set closed dates for the whole venue on the
+            <a class="underline" href="{{ route('owner.venues.courts', $court->venue) }}" wire:navigate>Manage courts</a> page.
+        </flux:callout.text>
+    </flux:callout>
 </div>

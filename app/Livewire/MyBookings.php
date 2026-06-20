@@ -21,6 +21,16 @@ class MyBookings extends Component
     #[Url]
     public string $filter = 'all';
 
+    /** Optional exact date filter (Y-m-d); empty = no date filter. */
+    #[Url]
+    public string $date = '';
+
+    /** Clear the date filter. */
+    public function clearDate(): void
+    {
+        $this->date = '';
+    }
+
     public function render()
     {
         $bookings = auth()->user()->bookings()
@@ -33,13 +43,20 @@ class MyBookings extends Component
                     ->orWhere(fn ($p) => $p->where('status', BookingStatus::Pending->value)
                         ->where('hold_expires_at', '<=', now()));
             }))
+            ->when($this->date !== '', fn ($q) => $q->whereDate('booking_date', $this->date))
             ->orderBy('booking_group') // keep slots booked together adjacent…
             ->orderBy('court_id')
             ->orderBy('booking_date')
             ->orderBy('start_time')    // …in time order, so consecutive ones merge
             ->get();
 
-        return view('livewire.my-bookings', ['groups' => $this->groupConsecutive($bookings)]);
+        $groups = $this->groupConsecutive($bookings);
+
+        // Surface today's bookings on their own, separate from every other date.
+        return view('livewire.my-bookings', [
+            'todayGroups' => array_values(array_filter($groups, fn ($g) => $g['date']->isToday())),
+            'otherGroups' => array_values(array_filter($groups, fn ($g) => ! $g['date']->isToday())),
+        ]);
     }
 
     /**

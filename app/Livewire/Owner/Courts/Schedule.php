@@ -37,10 +37,6 @@ class Schedule extends Component
     public $hours_per_slot = 1; // length of each bookable slot, in hours
     public $price = 40;
 
-    // Block-date form
-    public string $block_date = '';
-    public string $block_reason = '';
-
     public function mount(Court $court): void
     {
         // Only the owner of the court's venue may edit its schedule.
@@ -126,26 +122,6 @@ class Schedule extends Component
         $this->court->sessionTemplates()->whereKey($sessionId)->delete();
     }
 
-    public function blockDate(): void
-    {
-        $validated = $this->validate([
-            'block_date' => 'required|date|after_or_equal:today',
-            'block_reason' => 'nullable|string|max:255',
-        ]);
-
-        $this->court->blockedDates()->updateOrCreate(
-            ['date' => $validated['block_date']],
-            ['reason' => $validated['block_reason'] ?: null],
-        );
-
-        $this->reset('block_date', 'block_reason');
-    }
-
-    public function unblockDate(int $blockedDateId): void
-    {
-        $this->court->blockedDates()->whereKey($blockedDateId)->delete();
-    }
-
     public function render()
     {
         return view('livewire.owner.courts.schedule', [
@@ -154,7 +130,6 @@ class Schedule extends Component
                 ->orderBy('start_time')
                 ->get()
                 ->groupBy('day_of_week'),
-            'blockedDates' => $this->court->blockedDates()->orderBy('date')->get(),
             'days' => config('courtgo.weekdays'), // Monday-first display order
             'times' => $this->timeOptions(),
             'endTimes' => $this->endTimeOptions(),

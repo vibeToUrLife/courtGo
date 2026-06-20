@@ -98,7 +98,7 @@
                         @foreach ($sessions as $i => $row)
                             <div wire:key="session-{{ $i }}" class="space-y-3 rounded-lg border border-zinc-100 dark:border-zinc-800 p-3">
                                 @include('partials.day-toggles', ['model' => "sessions.$i.days", 'weekdays' => $weekdays])
-                                <div class="grid grid-cols-2 gap-2 lg:grid-cols-5 lg:items-end">
+                                <div class="grid grid-cols-2 gap-2 lg:grid-cols-4 lg:items-end">
                                     <flux:select wire:model.live="sessions.{{ $i }}.start_time" label="From">
                                         @foreach ($times as $value => $label)<flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>@endforeach
                                     </flux:select>
@@ -109,13 +109,10 @@
                                         @foreach (config('courtgo.slot_lengths') as $value => $label)<flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>@endforeach
                                     </flux:select>
                                     <flux:input type="number" min="0" step="0.01" wire:model.live="sessions.{{ $i }}.price" label="Price/slot (RM)" />
-                                    <flux:button variant="ghost" icon="trash" wire:click="removeSession({{ $i }})" />
                                 </div>
                                 <x-window-preview :preview="$this->slotPreview($row['start_time'] ?? '', $row['end_time'] ?? '', $row['hours'] ?? null)" :hours="$row['hours'] ?? ''" />
                             </div>
                         @endforeach
-
-                        <flux:button size="sm" variant="ghost" icon="plus" wire:click="addSession">Add slot</flux:button>
                     </div>
                 @else
                     <div class="space-y-6">
@@ -126,7 +123,7 @@
                                 @foreach ($courtSessions[$c] ?? [] as $i => $row)
                                     <div wire:key="court-{{ $c }}-session-{{ $i }}" class="space-y-3 rounded-lg border border-zinc-100 dark:border-zinc-800 p-3">
                                         @include('partials.day-toggles', ['model' => "courtSessions.$c.$i.days", 'weekdays' => $weekdays])
-                                        <div class="grid grid-cols-2 gap-2 lg:grid-cols-5 lg:items-end">
+                                        <div class="grid grid-cols-2 gap-2 lg:grid-cols-4 lg:items-end">
                                             <flux:select wire:model.live="courtSessions.{{ $c }}.{{ $i }}.start_time" label="From">
                                                 @foreach ($times as $value => $label)<flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>@endforeach
                                             </flux:select>
@@ -137,13 +134,10 @@
                                                 @foreach (config('courtgo.slot_lengths') as $value => $label)<flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>@endforeach
                                             </flux:select>
                                             <flux:input type="number" min="0" step="0.01" wire:model.live="courtSessions.{{ $c }}.{{ $i }}.price" label="Price/slot (RM)" />
-                                            <flux:button variant="ghost" icon="trash" wire:click="removeCourtSession({{ $c }}, {{ $i }})" />
                                         </div>
                                         <x-window-preview :preview="$this->slotPreview($row['start_time'] ?? '', $row['end_time'] ?? '', $row['hours'] ?? null)" :hours="$row['hours'] ?? ''" />
                                     </div>
                                 @endforeach
-
-                                <flux:button size="sm" variant="ghost" icon="plus" wire:click="addCourtSession({{ $c }})">Add slot</flux:button>
                             </div>
                         @endforeach
                     </div>
@@ -208,6 +202,34 @@
                         @endforeach
                     </tbody>
                 </table>
+            </div>
+        @endif
+    </div>
+
+    {{-- ───────────────────────── Venue holidays ───────────────────────── --}}
+    <div class="space-y-4">
+        <flux:heading size="lg">Holidays / closed dates</flux:heading>
+        <flux:text>Close the whole venue on a date (public holiday, maintenance). Every court here is unbookable on these dates.</flux:text>
+
+        <form wire:submit="addClosedDate" class="flex flex-wrap items-end gap-3 rounded-xl border border-zinc-200 dark:border-zinc-700 p-5">
+            <flux:input wire:model="closed_date" type="date" label="Date to close" :min="now()->toDateString()" />
+            <flux:input wire:model="closed_reason" label="Reason (optional)" placeholder="Public holiday" />
+            <flux:button type="submit" variant="primary">Close this date</flux:button>
+        </form>
+
+        @if ($closedDates->isEmpty())
+            <flux:text class="text-zinc-400">No closed dates.</flux:text>
+        @else
+            <div class="flex flex-wrap gap-2">
+                @foreach ($closedDates as $closed)
+                    <div class="flex items-center gap-2 rounded-lg bg-amber-100 dark:bg-amber-900/40 px-3 py-1.5 text-sm" wire:key="closed-{{ $closed->id }}">
+                        <span>{{ $closed->date->format('D, d M Y') }}</span>
+                        @if ($closed->reason)
+                            <span class="text-zinc-500">({{ $closed->reason }})</span>
+                        @endif
+                        <button type="button" class="text-red-500 hover:text-red-700" wire:click="removeClosedDate({{ $closed->id }})" wire:confirm="Reopen this date?">&times;</button>
+                    </div>
+                @endforeach
             </div>
         @endif
     </div>
