@@ -7,15 +7,16 @@
         </flux:callout>
     @endif
 
+    {{-- Full-width cover banner --}}
+    @if ($venue->imageUrl())
+        <img src="{{ $venue->imageUrl() }}" alt="{{ $venue->name }}" class="h-52 w-full rounded-2xl object-cover sm:h-72" />
+    @endif
+
     {{-- Two columns on large screens: venue details on the left, booking on the
          right. Stacks back to a single top-down column on small screens. --}}
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-start">
         {{-- LEFT: venue details (sticks while the calendar on the right scrolls) --}}
         <div class="space-y-3 lg:sticky lg:top-6">
-            @if ($venue->imageUrl())
-                <img src="{{ $venue->imageUrl() }}" alt="{{ $venue->name }}" class="h-48 w-full rounded-xl object-cover" />
-            @endif
-
             <flux:heading size="xl">{{ $venue->name }}</flux:heading>
             <x-venue-map-link :venue="$venue" class="text-sm" />
             @if ($venue->description)

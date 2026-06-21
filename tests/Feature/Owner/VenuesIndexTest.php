@@ -12,9 +12,11 @@ test('the add-venue form is collapsed until the Add venue button is used', funct
     $owner = User::factory()->create(['role' => UserRole::Owner]);
 
     Livewire::actingAs($owner)->test(Index::class)
-        ->assertDontSee('Add a new venue')
+        ->assertSee('Your venues')         // list shown by default
+        ->assertDontSee('Add a new venue') // form hidden
         ->call('toggleForm')
-        ->assertSee('Add a new venue');
+        ->assertSee('Add a new venue')     // form shown
+        ->assertDontSee('Your venues');    // list hidden while adding
 });
 
 test('deleting a venue removes its image file', function () {

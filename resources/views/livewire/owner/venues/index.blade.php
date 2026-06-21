@@ -36,7 +36,8 @@
         </form>
     @endif
 
-    {{-- Venue list --}}
+    {{-- Venue list — hidden while the add-venue form is open --}}
+    @unless ($showForm)
     <div class="space-y-3">
         <flux:heading size="lg">Your venues ({{ $venues->count() }})</flux:heading>
 
@@ -107,4 +108,5 @@
             </div>
         @endif
     </div>
+    @endunless
 </div>
