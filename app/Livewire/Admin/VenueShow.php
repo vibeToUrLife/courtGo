@@ -27,8 +27,14 @@ class VenueShow extends Component
         }
 
         $items = $this->venue->verified_items ?? [];
+        $alreadyVerified = in_array($key, $items, true);
 
-        $items = in_array($key, $items, true)
+        // Can't verify an item the owner hasn't uploaded a document for.
+        if (! $alreadyVerified && ! $this->venue->documents()->where('type', $key)->exists()) {
+            return;
+        }
+
+        $items = $alreadyVerified
             ? array_values(array_diff($items, [$key]))
             : [...$items, $key];
 

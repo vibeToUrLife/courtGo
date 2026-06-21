@@ -76,7 +76,9 @@
                             @endif
                         </div>
 
-                        <flux:button size="sm" :variant="$venue->isItemVerified($key) ? 'filled' : 'primary'" wire:click="toggleVerified('{{ $key }}')">
+                        <flux:button size="sm" :variant="$venue->isItemVerified($key) ? 'filled' : 'primary'"
+                            :disabled="! $venue->isItemVerified($key) && empty($documents[$key])"
+                            wire:click="toggleVerified('{{ $key }}')">
                             {{ $venue->isItemVerified($key) ? 'Verified ✓' : 'Mark verified' }}
                         </flux:button>
                     </div>

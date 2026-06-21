@@ -50,7 +50,11 @@ test('a venue cannot be approved until every verification item is ticked', funct
 
     expect($venue->fresh()->isApproved())->toBeFalse();
 
-    // After ticking each item, approval goes through.
+    // The owner uploads each document, then the admin ticks each item.
+    foreach (Venue::verificationKeys() as $type) {
+        $venue->documents()->create(['type' => $type, 'path' => "venue-documents/{$type}.pdf", 'original_name' => "{$type}.pdf"]);
+    }
+
     Livewire::actingAs($admin)
         ->test(VenueShow::class, ['venue' => $venue])
         ->call('toggleVerified', 'ssm')
@@ -60,6 +64,26 @@ test('a venue cannot be approved until every verification item is ticked', funct
         ->call('approve');
 
     expect($venue->fresh()->isApproved())->toBeTrue();
+});
+
+test('an admin cannot mark an item verified when the owner uploaded no document', function () {
+    $venue = Venue::factory()->pending()->create(); // no documents
+    $admin = User::factory()->create(['role' => UserRole::Admin]);
+
+    Livewire::actingAs($admin)
+        ->test(VenueShow::class, ['venue' => $venue])
+        ->call('toggleVerified', 'ssm');
+
+    expect($venue->fresh()->isItemVerified('ssm'))->toBeFalse(); // blocked — nothing uploaded
+
+    // Once the document exists, the same action verifies it.
+    $venue->documents()->create(['type' => 'ssm', 'path' => 'venue-documents/ssm.pdf', 'original_name' => 'ssm.pdf']);
+
+    Livewire::actingAs($admin)
+        ->test(VenueShow::class, ['venue' => $venue])
+        ->call('toggleVerified', 'ssm');
+
+    expect($venue->fresh()->isItemVerified('ssm'))->toBeTrue();
 });
 
 test('the venue list links through to the detail page', function () {
