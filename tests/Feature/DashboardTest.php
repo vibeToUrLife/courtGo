@@ -2,7 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Enums\BookingStatus;
 use App\Enums\UserRole;
+use App\Models\Booking;
+use App\Models\Court;
 use App\Models\User;
 use App\Models\Venue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -46,6 +49,21 @@ class DashboardTest extends TestCase
             ->assertOk()
             ->assertSee('Get your courts live')
             ->assertSee('Subscribe each venue'); // the still-incomplete step
+    }
+
+    public function test_owner_dashboard_shows_total_earnings_from_confirmed_bookings(): void
+    {
+        $owner = User::factory()->create(['role' => UserRole::Owner]);
+        $court = Court::factory()->for(Venue::factory()->for($owner, 'owner')->create())->create();
+
+        Booking::factory()->for($court)->create(['status' => BookingStatus::Confirmed, 'price' => 40, 'booking_date' => '2026-07-01']);
+        Booking::factory()->for($court)->create(['status' => BookingStatus::Confirmed, 'price' => 25, 'booking_date' => '2026-07-02']);
+        Booking::factory()->for($court)->pending()->create(['price' => 99, 'booking_date' => '2026-07-03']); // not counted
+
+        $this->actingAs($owner)->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('Total earnings')
+            ->assertSee('RM 65.00'); // 40 + 25, pending excluded
     }
 
     public function test_admin_dashboard_renders(): void

@@ -15,6 +15,21 @@
             @php($upcoming = \App\Models\Booking::where('status', \App\Enums\BookingStatus::Confirmed->value)
                 ->whereDate('booking_date', '>=', now()->toDateString())
                 ->whereHas('court.venue', fn ($v) => $v->where('owner_id', $user->id))->count())
+            @php($earnings = \App\Models\Booking::where('status', \App\Enums\BookingStatus::Confirmed->value)
+                ->whereHas('court.venue', fn ($v) => $v->where('owner_id', $user->id))
+                ->selectRaw('COALESCE(SUM(price), 0) as total, COUNT(*) as cnt')->first())
+
+            {{-- Featured: earnings (owners keep 100%) --}}
+            <div class="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-white p-6 dark:border-blue-900 dark:from-blue-950/40 dark:to-zinc-900">
+                <div class="flex items-center justify-between">
+                    <flux:text class="text-sm font-medium text-blue-700 dark:text-blue-300">Total earnings</flux:text>
+                    <span class="flex size-9 items-center justify-center rounded-xl bg-blue-600 text-white">
+                        <flux:icon name="banknotes" class="size-5" />
+                    </span>
+                </div>
+                <div class="mt-3 text-4xl font-bold tabular-nums text-zinc-900 dark:text-white">RM {{ number_format($earnings->total, 2) }}</div>
+                <flux:text class="mt-1 text-sm text-zinc-500">From {{ $earnings->cnt }} confirmed {{ \Illuminate\Support\Str::plural('booking', $earnings->cnt) }} — you keep 100%, CourtGo takes 0% commission.</flux:text>
+            </div>
 
             {{-- KPI stat cards --}}
             <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
