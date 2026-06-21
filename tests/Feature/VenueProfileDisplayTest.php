@@ -7,6 +7,20 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenuePhoto;
 
+test('the venue page shows quick-facts: a from-price and open-now status', function () {
+    $venue = Venue::factory()->subscribed()->create([
+        'opening_hours' => [now()->dayOfWeek => ['closed' => false, 'open' => '00:00', 'close' => '00:00']], // open 24h today
+    ]);
+    $court = Court::factory()->for($venue)->create(['is_active' => true]);
+    SessionTemplate::factory()->for($court)->create(['price' => 30, 'is_active' => true]);
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('venues.show', $venue))
+        ->assertOk()
+        ->assertSee('From RM 30')
+        ->assertSee('Open now');
+});
+
 test('the venue page shows social contact links as icons', function () {
     $venue = Venue::factory()->create([
         'contact_whatsapp' => '60123456789',

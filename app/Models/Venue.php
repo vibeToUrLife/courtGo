@@ -106,6 +106,27 @@ class Venue extends Model
             && (is_null($this->announcement_until) || ! today()->gt($this->announcement_until));
     }
 
+    /** Today's opening hours entry (['closed'|'open'|'close']), or null if none set. */
+    public function todayHours(): ?array
+    {
+        return ($this->opening_hours ?? [])[now()->dayOfWeek] ?? null;
+    }
+
+    /** Whether the venue is open right now, per today's opening hours. */
+    public function isOpenNow(): bool
+    {
+        $h = $this->todayHours();
+
+        if (! $h || ! empty($h['closed']) || empty($h['open']) || empty($h['close'])) {
+            return false;
+        }
+
+        $now = now()->format('H:i');
+        $close = $h['close'] === '00:00' ? '24:00' : $h['close']; // midnight = end of day
+
+        return $now >= $h['open'] && $now < $close;
+    }
+
     /**
      * The cheapest and dearest active slot price across this venue's courts,
      * or null when there are no priced slots yet.
