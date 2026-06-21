@@ -13,6 +13,79 @@
         </flux:callout>
     @endif
 
+    {{-- Verification documents (private — only you and the CourtGo admin can see these).
+         Kept at the top because they're required before the venue can go live. --}}
+    <div id="verification" class="scroll-mt-6 space-y-4 rounded-xl border border-zinc-200 dark:border-zinc-700 p-5">
+        <div class="space-y-1">
+            <flux:heading size="lg">Verification documents <span class="text-red-600">*required</span></flux:heading>
+            <flux:text class="text-sm text-zinc-500">
+                Upload <strong>all {{ count($verificationItems) }}</strong> documents below. They're private — only you and the CourtGo admin can open them. PDF or image, up to 20&nbsp;MB each.
+            </flux:text>
+        </div>
+
+        {{-- Make the consequence unmistakable --}}
+        @if ($venue->isApproved())
+            <flux:callout variant="success" icon="check-circle">
+                <flux:callout.text>Your documents were verified and this venue is approved.</flux:callout.text>
+            </flux:callout>
+        @elseif ($venue->hasAllDocuments())
+            <flux:callout variant="warning" icon="clock">
+                <flux:callout.text>All documents uploaded — waiting for the CourtGo admin to review and approve. Your courts go live once approved.</flux:callout.text>
+            </flux:callout>
+        @else
+            <flux:callout variant="danger" icon="exclamation-triangle">
+                <flux:callout.heading>Your courts can't go live until these are uploaded.</flux:callout.heading>
+                <flux:callout.text>
+                    Still needed:
+                    <strong>{{ collect($venue->missingDocumentTypes())->map(fn ($t) => $verificationItems[$t]['label'])->join(', ') }}</strong>.
+                    A venue is only approved (and bookable) after all {{ count($verificationItems) }} documents are uploaded and checked.
+                </flux:callout.text>
+            </flux:callout>
+        @endif
+
+        @error('document') <flux:text class="text-sm text-red-600">{{ $message }}</flux:text> @enderror
+
+        @foreach ($verificationItems as $key => $item)
+            <div class="space-y-2 rounded-lg border border-zinc-100 p-4 dark:border-zinc-800" wire:key="doc-{{ $key }}">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <flux:text class="font-medium">{{ $item['label'] }}</flux:text>
+                        @if (! empty($documents[$key]))
+                            <flux:badge color="green" size="sm">Uploaded</flux:badge>
+                        @else
+                            <flux:badge color="red" size="sm">Required</flux:badge>
+                        @endif
+                    </div>
+                    <flux:text class="text-sm text-zinc-500">{{ $item['owner_hint'] }}</flux:text>
+                </div>
+
+                @if (! empty($documents[$key]))
+                    <ul class="space-y-1 text-sm">
+                        @foreach ($documents[$key] as $doc)
+                            <li class="flex items-center justify-between gap-3" wire:key="docfile-{{ $doc->id }}">
+                                <a href="{{ route('venue-documents.show', $doc) }}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline dark:text-blue-400">
+                                    📄 {{ $doc->original_name }}
+                                </a>
+                                <form method="POST" action="{{ route('owner.venues.documents.destroy', [$venue, $doc]) }}">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="text-xs text-zinc-400 hover:text-red-600">Remove</button>
+                                </form>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+
+                <form method="POST" action="{{ route('owner.venues.documents.store', $venue) }}" enctype="multipart/form-data" class="flex flex-wrap items-center gap-3">
+                    @csrf
+                    <input type="hidden" name="type" value="{{ $key }}" />
+                    <x-file-input name="document" accept=".pdf,image/*" required />
+                    <flux:button type="submit" variant="primary" size="sm">Upload</flux:button>
+                </form>
+            </div>
+        @endforeach
+    </div>
+
     {{-- Amenities (Livewire — saves automatically when toggled) --}}
     <div class="space-y-3 rounded-xl border border-zinc-200 dark:border-zinc-700 p-5">
         <flux:heading size="lg">Amenities</flux:heading>
@@ -152,77 +225,5 @@
             <x-file-input name="photo" accept="image/*" required />
             <flux:button type="submit" variant="primary" size="sm">Upload layout</flux:button>
         </form>
-    </div>
-
-    {{-- Verification documents (private — only you and the CourtGo admin can see these) --}}
-    <div id="verification" class="scroll-mt-6 space-y-4 rounded-xl border border-zinc-200 dark:border-zinc-700 p-5">
-        <div class="space-y-1">
-            <flux:heading size="lg">Verification documents <span class="text-red-600">*required</span></flux:heading>
-            <flux:text class="text-sm text-zinc-500">
-                Upload <strong>all {{ count($verificationItems) }}</strong> documents below. They're private — only you and the CourtGo admin can open them. PDF or image, up to 20&nbsp;MB each.
-            </flux:text>
-        </div>
-
-        {{-- Make the consequence unmistakable --}}
-        @if ($venue->isApproved())
-            <flux:callout variant="success" icon="check-circle">
-                <flux:callout.text>Your documents were verified and this venue is approved.</flux:callout.text>
-            </flux:callout>
-        @elseif ($venue->hasAllDocuments())
-            <flux:callout variant="warning" icon="clock">
-                <flux:callout.text>All documents uploaded — waiting for the CourtGo admin to review and approve. Your courts go live once approved.</flux:callout.text>
-            </flux:callout>
-        @else
-            <flux:callout variant="danger" icon="exclamation-triangle">
-                <flux:callout.heading>Your courts can't go live until these are uploaded.</flux:callout.heading>
-                <flux:callout.text>
-                    Still needed:
-                    <strong>{{ collect($venue->missingDocumentTypes())->map(fn ($t) => $verificationItems[$t]['label'])->join(', ') }}</strong>.
-                    A venue is only approved (and bookable) after all {{ count($verificationItems) }} documents are uploaded and checked.
-                </flux:callout.text>
-            </flux:callout>
-        @endif
-
-        @error('document') <flux:text class="text-sm text-red-600">{{ $message }}</flux:text> @enderror
-
-        @foreach ($verificationItems as $key => $item)
-            <div class="space-y-2 rounded-lg border border-zinc-100 p-4 dark:border-zinc-800" wire:key="doc-{{ $key }}">
-                <div>
-                    <div class="flex items-center gap-2">
-                        <flux:text class="font-medium">{{ $item['label'] }}</flux:text>
-                        @if (! empty($documents[$key]))
-                            <flux:badge color="green" size="sm">Uploaded</flux:badge>
-                        @else
-                            <flux:badge color="red" size="sm">Required</flux:badge>
-                        @endif
-                    </div>
-                    <flux:text class="text-sm text-zinc-500">{{ $item['owner_hint'] }}</flux:text>
-                </div>
-
-                @if (! empty($documents[$key]))
-                    <ul class="space-y-1 text-sm">
-                        @foreach ($documents[$key] as $doc)
-                            <li class="flex items-center justify-between gap-3" wire:key="docfile-{{ $doc->id }}">
-                                <a href="{{ route('venue-documents.show', $doc) }}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline dark:text-blue-400">
-                                    📄 {{ $doc->original_name }}
-                                </a>
-                                <form method="POST" action="{{ route('owner.venues.documents.destroy', [$venue, $doc]) }}">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="text-xs text-zinc-400 hover:text-red-600">Remove</button>
-                                </form>
-                            </li>
-                        @endforeach
-                    </ul>
-                @endif
-
-                <form method="POST" action="{{ route('owner.venues.documents.store', $venue) }}" enctype="multipart/form-data" class="flex flex-wrap items-center gap-3">
-                    @csrf
-                    <input type="hidden" name="type" value="{{ $key }}" />
-                    <x-file-input name="document" accept=".pdf,image/*" required />
-                    <flux:button type="submit" variant="primary" size="sm">Upload</flux:button>
-                </form>
-            </div>
-        @endforeach
     </div>
 </div>
