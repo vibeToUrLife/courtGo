@@ -99,6 +99,38 @@ test('saving details rejects a bad email and a backwards opening time', function
         ->assertDispatched('profile-error');
 });
 
+test('an owner can bulk-apply the same opening hours to every day', function () {
+    $owner = User::factory()->create(['role' => UserRole::Owner]);
+    $venue = Venue::factory()->for($owner, 'owner')->create();
+
+    Livewire::actingAs($owner)
+        ->test(Profile::class, ['venue' => $venue])
+        ->set('bulkOpen', '09:00')
+        ->set('bulkClose', '23:00')
+        ->call('applyHoursToAll')
+        ->call('saveInfo')
+        ->assertHasNoErrors();
+
+    $hours = $venue->fresh()->opening_hours;
+    expect($hours[1]['open'])->toBe('09:00')          // Monday
+        ->and($hours[1]['close'])->toBe('23:00')
+        ->and($hours[1]['closed'])->toBeFalse()
+        ->and($hours[0]['open'])->toBe('09:00');       // Sunday too
+});
+
+test('an owner can mark every day closed at once', function () {
+    $owner = User::factory()->create(['role' => UserRole::Owner]);
+    $venue = Venue::factory()->for($owner, 'owner')->create();
+
+    Livewire::actingAs($owner)
+        ->test(Profile::class, ['venue' => $venue])
+        ->call('closeAllDays')
+        ->call('saveInfo')
+        ->assertHasNoErrors();
+
+    expect($venue->fresh()->opening_hours[1]['closed'])->toBeTrue();
+});
+
 test('a half-filled opening day (only one time) is rejected', function () {
     $owner = User::factory()->create(['role' => UserRole::Owner]);
     $venue = Venue::factory()->for($owner, 'owner')->create();

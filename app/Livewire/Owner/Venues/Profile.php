@@ -25,6 +25,10 @@ class Profile extends Component
     /** Per-weekday hours: [dow => ['closed' => bool, 'open' => 'HH:MM', 'close' => 'HH:MM']]. */
     public array $openingHours = [];
 
+    // Bulk "set all days" helper fields.
+    public string $bulkOpen = '';
+    public string $bulkClose = '';
+
     public string $pricingNote = '';
 
     public string $announcement = '';
@@ -87,6 +91,26 @@ class Profile extends Component
 
         $this->venue->update(['amenities' => $validated['amenities']]);
         // Silent: this autosaves on every toggle, so the ticked state is the feedback.
+    }
+
+    /** Set every weekday to the bulk open/close time (and mark them all open). */
+    public function applyHoursToAll(): void
+    {
+        foreach (array_keys($this->openingHours) as $dow) {
+            $this->openingHours[$dow] = [
+                'closed' => false,
+                'open' => $this->bulkOpen,
+                'close' => $this->bulkClose,
+            ];
+        }
+    }
+
+    /** Mark every weekday closed. */
+    public function closeAllDays(): void
+    {
+        foreach (array_keys($this->openingHours) as $dow) {
+            $this->openingHours[$dow]['closed'] = true;
+        }
     }
 
     public function saveInfo(): void

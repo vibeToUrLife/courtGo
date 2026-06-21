@@ -52,6 +52,15 @@
         {{-- Opening hours --}}
         <div class="space-y-2">
             <flux:text class="font-medium">Opening hours</flux:text>
+
+            {{-- Bulk set: same hours for every day --}}
+            <div class="flex flex-wrap items-end gap-2 rounded-lg bg-zinc-50 p-3 dark:bg-zinc-900">
+                <flux:input type="time" wire:model="bulkOpen" label="From" class="max-w-[8rem]" />
+                <flux:input type="time" wire:model="bulkClose" label="Until" class="max-w-[8rem]" />
+                <flux:button size="sm" wire:click="applyHoursToAll">Apply to all days</flux:button>
+                <flux:button size="sm" variant="ghost" wire:click="closeAllDays">Close all days</flux:button>
+            </div>
+
             @foreach ($weekdays as $dow => $label)
                 <div class="flex flex-wrap items-center gap-3" wire:key="oh-{{ $dow }}">
                     <span class="w-24 text-sm">{{ $label }}</span>
