@@ -13,7 +13,9 @@
         <section>
             <div class="relative isolate overflow-hidden">
                 <img src="{{ asset('images/hero-banner.svg') }}" alt=""
-                     class="absolute inset-0 -z-10 h-full w-full object-cover" />
+                     class="absolute inset-0 -z-20 h-full w-full object-cover" />
+                {{-- Scrim for legible white text over any banner --}}
+                <div class="absolute inset-0 -z-10 bg-gradient-to-b from-blue-950/70 via-blue-900/55 to-blue-950/85"></div>
 
                 <div class="mx-auto max-w-6xl px-6 pb-24 pt-16 text-center sm:pb-32 sm:pt-24">
                     <span class="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-sm text-white backdrop-blur">
@@ -29,6 +31,12 @@
                         Find badminton, futsal, tennis and more across Malaysia. Pick a time, book a court,
                         and pay securely — no phone calls, no waiting.
                     </p>
+
+                    <div class="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm font-medium text-white/90">
+                        <span class="inline-flex items-center gap-2"><flux:icon name="shield-check" class="size-5 text-emerald-300" /> Secure payment</span>
+                        <span class="inline-flex items-center gap-2"><flux:icon name="bolt" class="size-5 text-emerald-300" /> Instant confirmation</span>
+                        <span class="inline-flex items-center gap-2"><flux:icon name="credit-card" class="size-5 text-emerald-300" /> Card or FPX</span>
+                    </div>
                 </div>
             </div>
 
@@ -59,8 +67,8 @@
                     </label>
 
                     <button type="submit"
-                            class="rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700">
-                        Find a court
+                            class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white transition hover:bg-blue-700">
+                        <flux:icon name="magnifying-glass" class="size-4" /> Find a court
                     </button>
                 </form>
 
@@ -155,6 +163,22 @@
                         </li>
                     @endforeach
                 </ul>
+            </div>
+        </section>
+
+        {{-- Closing call to action --}}
+        <section class="border-t border-zinc-200 dark:border-zinc-800">
+            <div class="mx-auto max-w-6xl px-6 py-16">
+                <div class="overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 to-blue-800 px-8 py-14 text-center shadow-lg">
+                    <h2 class="text-3xl font-bold text-white sm:text-4xl">Ready to play?</h2>
+                    <p class="mx-auto mt-3 max-w-xl text-blue-100">Find an available court near you and lock in your slot in seconds.</p>
+                    <div class="mt-8">
+                        <a href="{{ route('courts.browse') }}" wire:navigate
+                           class="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-base font-semibold text-blue-700 transition hover:bg-blue-50">
+                            <flux:icon name="magnifying-glass" class="size-5" /> Find a court
+                        </a>
+                    </div>
+                </div>
             </div>
         </section>
 
