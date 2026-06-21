@@ -179,6 +179,24 @@ class Venue extends Model
         return count(array_intersect(self::verificationKeys(), $this->verified_items ?? []));
     }
 
+    /** Verification document types the owner has uploaded at least one file for. */
+    public function uploadedDocumentTypes(): array
+    {
+        return $this->documents->pluck('type')->unique()->values()->all();
+    }
+
+    /** Required verification documents the owner still needs to upload. */
+    public function missingDocumentTypes(): array
+    {
+        return array_values(array_diff(self::verificationKeys(), $this->uploadedDocumentTypes()));
+    }
+
+    /** Whether the owner has uploaded every required verification document. */
+    public function hasAllDocuments(): bool
+    {
+        return empty($this->missingDocumentTypes());
+    }
+
     /**
      * Dates the whole venue is closed (holidays, maintenance) — every court is
      * unbookable on these dates.

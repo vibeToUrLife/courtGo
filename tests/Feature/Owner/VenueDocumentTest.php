@@ -79,3 +79,39 @@ test('a guest is sent to login when opening a document', function () {
 
     $this->get(route('venue-documents.show', $doc))->assertRedirect();
 });
+
+/** Upload a document row for each required verification type (no real files needed). */
+function uploadAllDocs(Venue $venue): void
+{
+    foreach (Venue::verificationKeys() as $type) {
+        $venue->documents()->create([
+            'type' => $type, 'path' => "venue-documents/{$type}.pdf", 'original_name' => "{$type}.pdf",
+        ]);
+    }
+}
+
+test('My Venues prompts the owner to upload documents when any are missing', function () {
+    $venue = Venue::factory()->pending()->create();
+
+    $this->actingAs($venue->owner)->get(route('owner.venues.index'))
+        ->assertOk()
+        ->assertSee('Upload documents');
+});
+
+test('the upload-documents prompt clears once every document is provided', function () {
+    $venue = Venue::factory()->pending()->create();
+    uploadAllDocs($venue);
+
+    $this->actingAs($venue->owner)->get(route('owner.venues.index'))
+        ->assertOk()
+        ->assertSee('Pending approval')
+        ->assertDontSee('Upload documents');
+});
+
+test('the owner dashboard tells them to upload verification documents to go live', function () {
+    $venue = Venue::factory()->pending()->create();
+
+    $this->actingAs($venue->owner)->get('/dashboard')
+        ->assertOk()
+        ->assertSee('Upload your verification documents to go live');
+});

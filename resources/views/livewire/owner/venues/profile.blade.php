@@ -155,20 +155,47 @@
     </div>
 
     {{-- Verification documents (private — only you and the CourtGo admin can see these) --}}
-    <div class="space-y-4 rounded-xl border border-zinc-200 dark:border-zinc-700 p-5">
+    <div id="verification" class="scroll-mt-6 space-y-4 rounded-xl border border-zinc-200 dark:border-zinc-700 p-5">
         <div class="space-y-1">
-            <flux:heading size="lg">Verification documents</flux:heading>
+            <flux:heading size="lg">Verification documents <span class="text-red-600">*required</span></flux:heading>
             <flux:text class="text-sm text-zinc-500">
-                The admin checks these before approving your venue for booking. They're private — only you and the CourtGo admin can open them. PDF or image, up to 20&nbsp;MB each.
+                Upload <strong>all {{ count($verificationItems) }}</strong> documents below. They're private — only you and the CourtGo admin can open them. PDF or image, up to 20&nbsp;MB each.
             </flux:text>
         </div>
+
+        {{-- Make the consequence unmistakable --}}
+        @if ($venue->isApproved())
+            <flux:callout variant="success" icon="check-circle">
+                <flux:callout.text>Your documents were verified and this venue is approved.</flux:callout.text>
+            </flux:callout>
+        @elseif ($venue->hasAllDocuments())
+            <flux:callout variant="warning" icon="clock">
+                <flux:callout.text>All documents uploaded — waiting for the CourtGo admin to review and approve. Your courts go live once approved.</flux:callout.text>
+            </flux:callout>
+        @else
+            <flux:callout variant="danger" icon="exclamation-triangle">
+                <flux:callout.heading>Your courts can't go live until these are uploaded.</flux:callout.heading>
+                <flux:callout.text>
+                    Still needed:
+                    <strong>{{ collect($venue->missingDocumentTypes())->map(fn ($t) => $verificationItems[$t]['label'])->join(', ') }}</strong>.
+                    A venue is only approved (and bookable) after all {{ count($verificationItems) }} documents are uploaded and checked.
+                </flux:callout.text>
+            </flux:callout>
+        @endif
 
         @error('document') <flux:text class="text-sm text-red-600">{{ $message }}</flux:text> @enderror
 
         @foreach ($verificationItems as $key => $item)
             <div class="space-y-2 rounded-lg border border-zinc-100 p-4 dark:border-zinc-800" wire:key="doc-{{ $key }}">
                 <div>
-                    <flux:text class="font-medium">{{ $item['label'] }}</flux:text>
+                    <div class="flex items-center gap-2">
+                        <flux:text class="font-medium">{{ $item['label'] }}</flux:text>
+                        @if (! empty($documents[$key]))
+                            <flux:badge color="green" size="sm">Uploaded</flux:badge>
+                        @else
+                            <flux:badge color="red" size="sm">Required</flux:badge>
+                        @endif
+                    </div>
                     <flux:text class="text-sm text-zinc-500">{{ $item['owner_hint'] }}</flux:text>
                 </div>
 

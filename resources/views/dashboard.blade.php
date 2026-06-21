@@ -28,8 +28,24 @@
         @endif
 
         @if ($user->role === \App\Enums\UserRole::Owner)
+            @php($venuesNeedingDocs = $user->venues()->whereNull('approved_at')->with('documents')->get()
+                ->filter(fn ($v) => ! $v->hasAllDocuments()))
             @php($pendingVenues = $user->venues()->whereNull('approved_at')->count())
             @php($allVenuesSubscribed = $user->venues->every(fn ($v) => $v->setRelation('owner', $user)->isSubscribed()))
+
+            {{-- Most important: documents missing → venue can't be approved or go live --}}
+            @if ($venuesNeedingDocs->isNotEmpty())
+                <flux:callout variant="danger" icon="exclamation-triangle">
+                    <flux:callout.heading>Upload your verification documents to go live</flux:callout.heading>
+                    <flux:callout.text>
+                        {{ $venuesNeedingDocs->count() }} {{ \Illuminate\Support\Str::plural('venue', $venuesNeedingDocs->count()) }}
+                        ({{ $venuesNeedingDocs->pluck('name')->join(', ') }})
+                        still {{ $venuesNeedingDocs->count() === 1 ? 'needs' : 'need' }} documents (SSM, premises, council licence, address proof).
+                        A venue can't be approved or booked until all of them are uploaded in its
+                        <a class="underline" href="{{ route('owner.venues.index') }}">venue Profile</a>.
+                    </flux:callout.text>
+                </flux:callout>
+            @endif
 
             @unless ($user->canAcceptBookings() && $allVenuesSubscribed)
                 <flux:callout variant="warning" icon="exclamation-triangle">
@@ -45,7 +61,7 @@
                 <flux:callout variant="warning" icon="clock">
                     <flux:callout.text>
                         <strong>{{ $pendingVenues }} {{ \Illuminate\Support\Str::plural('venue', $pendingVenues) }} pending admin approval.</strong>
-                        You can add courts and schedules now — each venue becomes visible to customers once an admin approves it.
+                        You can add courts and schedules now — each venue becomes visible to customers once its documents are uploaded and an admin approves it.
                     </flux:callout.text>
                 </flux:callout>
             @endif
