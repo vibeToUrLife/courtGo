@@ -20,11 +20,11 @@ test('customer pages show the site footer', function () use ($marker) {
         ->assertSee($marker);
 });
 
-test('owner (sidebar) pages show the site footer', function () use ($marker) {
+test('owner (sidebar) pages do not show the site footer', function () use ($marker) {
     $owner = User::factory()->create(['role' => UserRole::Owner]);
 
     $this->actingAs($owner)
         ->get(route('owner.venues.index'))
         ->assertOk()
-        ->assertSee($marker);
+        ->assertDontSee($marker);
 });
