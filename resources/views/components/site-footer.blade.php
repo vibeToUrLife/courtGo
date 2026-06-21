@@ -15,11 +15,16 @@
             </div>
 
             {{-- Link groups --}}
-            <div class="flex gap-12 sm:gap-16">
+            <div class="flex flex-wrap gap-10 sm:gap-16">
                 <div class="space-y-2 text-sm">
                     <h3 class="font-semibold text-zinc-900 dark:text-white">Explore</h3>
                     <a href="{{ route('home') }}" class="block text-zinc-500 transition hover:text-blue-600 dark:text-zinc-400 dark:hover:text-blue-400">Home</a>
                     <a href="{{ route('for-business') }}" class="block text-zinc-500 transition hover:text-blue-600 dark:text-zinc-400 dark:hover:text-blue-400">For owners</a>
+                </div>
+                <div class="space-y-2 text-sm">
+                    <h3 class="font-semibold text-zinc-900 dark:text-white">Help</h3>
+                    <a href="{{ route('help') }}" wire:navigate class="block text-zinc-500 transition hover:text-blue-600 dark:text-zinc-400 dark:hover:text-blue-400">Help center</a>
+                    <a href="{{ route('feedback') }}" wire:navigate class="block text-zinc-500 transition hover:text-blue-600 dark:text-zinc-400 dark:hover:text-blue-400">Send feedback</a>
                 </div>
                 <div class="space-y-2 text-sm">
                     <h3 class="font-semibold text-zinc-900 dark:text-white">Support</h3>

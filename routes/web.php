@@ -18,6 +18,10 @@ Route::get('/', function () {
 // Public "for owners" marketing page (funnels into owner registration).
 Route::view('/for-business', 'for-business')->name('for-business');
 
+// Help center + feedback — public so customers AND owners can reach them.
+Route::get('/help', \App\Livewire\Help::class)->name('help');
+Route::get('/feedback', \App\Livewire\Feedback::class)->name('feedback');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {
         // Customers have no dashboard — send them straight to the homepage.
