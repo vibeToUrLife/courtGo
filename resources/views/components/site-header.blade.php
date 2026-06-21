@@ -6,7 +6,7 @@
     <nav class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         <a href="{{ route('home') }}" class="flex items-center gap-2 text-lg font-semibold">
             <span class="flex size-8 items-center justify-center rounded-md bg-blue-600 text-white">
-                <flux:icon name="map-pin" class="size-5" />
+                <flux:icon name="map-pin" variant="solid" class="size-5" />
             </span>
             {{ config('app.name') }}
         </a>
