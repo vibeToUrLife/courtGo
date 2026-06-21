@@ -75,6 +75,24 @@ test('approving a pending subscribed venue makes its courts bookable', function 
     expect(Court::bookable()->count())->toBe(1);
 });
 
+test('a subscription in its grace period (canceled, ends in the future) is still bookable', function () {
+    $venue = Venue::factory()->subscribed()->create();
+    Court::factory()->for($venue)->create(['is_active' => true]);
+    $venue->owner->subscriptions()->first()->update(['stripe_status' => 'canceled', 'ends_at' => now()->addDays(5)]);
+
+    expect($venue->fresh()->isSubscribed())->toBeTrue()      // PHP gate
+        ->and(Court::bookable()->count())->toBe(1);           // SQL gate agrees
+});
+
+test('a subscription that has fully ended is not bookable', function () {
+    $venue = Venue::factory()->subscribed()->create();
+    Court::factory()->for($venue)->create(['is_active' => true]);
+    $venue->owner->subscriptions()->first()->update(['stripe_status' => 'canceled', 'ends_at' => now()->subDay()]);
+
+    expect($venue->fresh()->isSubscribed())->toBeFalse()
+        ->and(Court::bookable()->count())->toBe(0);
+});
+
 test('subscribing one venue does not make the owners other venue bookable', function () {
     $owner = User::factory()->create(['role' => UserRole::Owner, 'connect_onboarded' => true]);
 

@@ -51,6 +51,15 @@ test('an admin can suspend and unsuspend an owner', function () {
     expect($owner->fresh()->is_suspended)->toBeFalse();
 });
 
+test('the admin dashboard counts active per-venue subscriptions', function () {
+    $admin = User::factory()->create(['role' => UserRole::Admin]);
+    Venue::factory()->subscribed()->create(); // one active venue subscription
+
+    Livewire::actingAs($admin)
+        ->test(\App\Livewire\Admin\Dashboard::class)
+        ->assertViewHas('activeSubscriptions', 1);
+});
+
 test('a suspended owner cannot accept bookings', function () {
     $owner = onboardedOwner(['is_suspended' => true]);
 

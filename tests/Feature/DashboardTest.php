@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\UserRole;
 use App\Models\User;
+use App\Models\Venue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -32,6 +33,17 @@ class DashboardTest extends TestCase
         $this->get(route('dashboard'))
             ->assertOk()
             ->assertSee('My Venues')
+            ->assertSee('subscribe each venue');
+    }
+
+    public function test_connected_owner_with_an_unsubscribed_venue_is_still_warned(): void
+    {
+        $owner = User::factory()->create(['role' => UserRole::Owner, 'connect_onboarded' => true]);
+        Venue::factory()->for($owner, 'owner')->create(); // approved, but not subscribed
+        $this->actingAs($owner);
+
+        $this->get(route('dashboard'))
+            ->assertOk()
             ->assertSee('subscribe each venue');
     }
 

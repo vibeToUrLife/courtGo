@@ -42,6 +42,16 @@ test('subscribing a venue without stripe configured redirects back safely', func
         ->assertRedirect(route('owner.billing'));
 });
 
+test('subscribing an already-subscribed venue just returns to billing (no double charge)', function () {
+    config()->set('cashier.secret', 'sk_test_x'); // pretend Stripe is configured
+    config()->set('services.stripe.price_id', 'price_x');
+    $venue = Venue::factory()->subscribed()->create();
+
+    $this->actingAs($venue->owner)
+        ->get(route('owner.billing.subscribe', $venue))
+        ->assertRedirect(route('owner.billing'));
+});
+
 test('an owner cannot subscribe another owners venue', function () {
     $owner = User::factory()->create(['role' => UserRole::Owner]);
     $venue = Venue::factory()->create(); // someone else's venue

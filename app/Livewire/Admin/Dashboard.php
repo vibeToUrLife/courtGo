@@ -25,7 +25,8 @@ class Dashboard extends Component
             'venueCount' => Venue::count(),
             'courtCount' => Court::count(),
             'confirmedBookings' => Booking::where('status', BookingStatus::Confirmed->value)->count(),
-            'activeSubscriptions' => Subscription::where('type', 'default')
+            // Subscriptions are per venue (typed "venue:{id}").
+            'activeSubscriptions' => Subscription::where('type', 'like', 'venue:%')
                 ->whereIn('stripe_status', ['active', 'trialing'])->count(),
         ]);
     }

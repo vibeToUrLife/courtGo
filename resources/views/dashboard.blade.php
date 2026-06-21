@@ -29,8 +29,9 @@
 
         @if ($user->role === \App\Enums\UserRole::Owner)
             @php($pendingVenues = $user->venues()->whereNull('approved_at')->count())
+            @php($allVenuesSubscribed = $user->venues->every(fn ($v) => $v->setRelation('owner', $user)->isSubscribed()))
 
-            @unless ($user->canAcceptBookings())
+            @unless ($user->canAcceptBookings() && $allVenuesSubscribed)
                 <flux:callout variant="warning" icon="exclamation-triangle">
                     <flux:callout.text>
                         <strong>Your courts aren't live yet.</strong>

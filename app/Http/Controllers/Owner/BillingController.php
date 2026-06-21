@@ -21,6 +21,12 @@ class BillingController extends Controller
         abort_unless($venue->owner_id === $request->user()->id, 403);
 
         $user = $request->user();
+
+        // Already subscribed — don't start a second checkout (would double-bill).
+        if ($user->subscribed($venue->subscriptionType())) {
+            return redirect()->route('owner.billing');
+        }
+
         $priceId = config('services.stripe.price_id');
 
         if (! $this->stripeConfigured() || ! $priceId) {

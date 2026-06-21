@@ -78,7 +78,12 @@ class Court extends Model
                             ->from('subscriptions')
                             ->whereColumn('subscriptions.user_id', 'venues.owner_id')
                             ->whereRaw("subscriptions.type = $venueType")
-                            ->whereIn('subscriptions.stripe_status', ['active', 'trialing']);
+                            // Mirror Cashier's valid(): active/trialing and not ended,
+                            // OR still inside the grace period (ends_at in the future).
+                            ->where(function ($q) {
+                                $q->where(fn ($a) => $a->whereIn('subscriptions.stripe_status', ['active', 'trialing'])->whereNull('subscriptions.ends_at'))
+                                    ->orWhere('subscriptions.ends_at', '>', now());
+                            });
                     });
             });
     }
