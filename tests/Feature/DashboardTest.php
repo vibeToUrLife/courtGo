@@ -66,6 +66,27 @@ class DashboardTest extends TestCase
             ->assertSee('RM 65.00'); // 40 + 25, pending excluded
     }
 
+    public function test_owner_dashboard_lists_upcoming_bookings_with_court_and_time(): void
+    {
+        $owner = User::factory()->create(['role' => UserRole::Owner]);
+        $court = Court::factory()
+            ->for(Venue::factory()->for($owner, 'owner')->create(['name' => 'Sunway Arena']))
+            ->create(['name' => 'Court A']);
+
+        Booking::factory()->for($court)->create([
+            'status' => BookingStatus::Confirmed,
+            'booking_date' => now()->addDays(3)->toDateString(),
+            'start_time' => '09:00', 'end_time' => '10:00',
+        ]);
+
+        $this->actingAs($owner)->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('Upcoming bookings')
+            ->assertSee('Sunway Arena')
+            ->assertSee('Court A')
+            ->assertSee('9:00 AM'); // the booking's time, not just a count
+    }
+
     public function test_admin_dashboard_renders(): void
     {
         $admin = User::factory()->create(['role' => UserRole::Admin]);

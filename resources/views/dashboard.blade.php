@@ -9,7 +9,8 @@
         </div>
 
         @if ($isOwner)
-            @php($venueCount = $user->venues()->count())
+            @php($ownerVenues = $user->venues()->with('documents')->get())
+            @php($venueCount = $ownerVenues->count())
             @php($liveCount = \App\Models\Venue::bookable()->where('owner_id', $user->id)->count())
             @php($courtCount = \App\Models\Court::whereHas('venue', fn ($v) => $v->where('owner_id', $user->id))->count())
             @php($upcoming = \App\Models\Booking::where('status', \App\Enums\BookingStatus::Confirmed->value)
@@ -28,7 +29,6 @@
                     </span>
                 </div>
                 <div class="mt-3 text-4xl font-bold tabular-nums text-zinc-900 dark:text-white">RM {{ number_format($earnings->total, 2) }}</div>
-                <flux:text class="mt-1 text-sm text-zinc-500">From {{ $earnings->cnt }} confirmed {{ \Illuminate\Support\Str::plural('booking', $earnings->cnt) }} — you keep 100%, CourtGo takes 0% commission.</flux:text>
             </div>
 
             {{-- KPI stat cards --}}
@@ -50,12 +50,12 @@
             </div>
 
             {{-- Go-live checklist --}}
-            @php($venuesNeedingDocs = $user->venues()->whereNull('approved_at')->with('documents')->get()
-                ->filter(fn ($v) => ! $v->hasAllDocuments()))
-            @php($pendingVenues = $user->venues()->whereNull('approved_at')->count())
-            @php($allVenuesSubscribed = $venueCount > 0 && $user->venues->every(fn ($v) => $v->setRelation('owner', $user)->isSubscribed()))
+            @php($venuesNeedingDocs = $ownerVenues->filter(fn ($v) => is_null($v->approved_at) && ! $v->hasAllDocuments()))
+            @php($pendingApprovalVenues = $ownerVenues->filter(fn ($v) => is_null($v->approved_at) && $v->hasAllDocuments()))
+            @php($unsubscribedVenues = $ownerVenues->filter(fn ($v) => ! $v->setRelation('owner', $user)->isSubscribed()))
             @php($docsDone = $venueCount > 0 && $venuesNeedingDocs->isEmpty())
-            @php($approvedDone = $venueCount > 0 && $pendingVenues === 0)
+            @php($approvedDone = $venueCount > 0 && $ownerVenues->every(fn ($v) => ! is_null($v->approved_at)))
+            @php($allVenuesSubscribed = $venueCount > 0 && $unsubscribedVenues->isEmpty())
             @php($bankDone = (bool) $user->connect_onboarded)
             @php($allLive = $venueCount > 0 && $approvedDone && $allVenuesSubscribed && $bankDone)
 
@@ -84,15 +84,15 @@
                                 'done' => $approvedDone,
                                 'label' => 'Verification & approval',
                                 'hint' => ! $docsDone
-                                    ? 'Upload all documents for: '.$venuesNeedingDocs->pluck('name')->join(', ')
-                                    : ($approvedDone ? 'All venues approved.' : 'Documents uploaded — waiting for admin approval.'),
+                                    ? 'Upload documents for: '.$venuesNeedingDocs->pluck('name')->join(', ')
+                                    : ($approvedDone ? 'All venues approved.' : 'Waiting for admin approval: '.$pendingApprovalVenues->pluck('name')->join(', ')),
                                 'cta' => $docsDone ? null : 'Upload documents',
                                 'href' => route('owner.venues.index'),
                             ],
                             [
                                 'done' => $allVenuesSubscribed,
                                 'label' => 'Subscribe each venue',
-                                'hint' => $allVenuesSubscribed ? 'Every venue is subscribed.' : 'Each venue needs its own monthly plan.',
+                                'hint' => $allVenuesSubscribed ? 'Every venue is subscribed.' : 'Not subscribed yet: '.$unsubscribedVenues->pluck('name')->join(', '),
                                 'cta' => $allVenuesSubscribed ? null : 'Go to Billing',
                                 'href' => route('owner.billing'),
                             ],
@@ -121,6 +121,42 @@
                             </li>
                         @endforeach
                     </ul>
+                </div>
+            @endif
+
+            {{-- Upcoming bookings: the actual court + time, not just a count --}}
+            @php($upcomingList = \App\Models\Booking::where('status', \App\Enums\BookingStatus::Confirmed->value)
+                ->whereDate('booking_date', '>=', now()->toDateString())
+                ->whereHas('court.venue', fn ($v) => $v->where('owner_id', $user->id))
+                ->with(['court.venue', 'customer'])
+                ->orderBy('booking_date')->orderBy('start_time')->limit(8)->get())
+            @if ($upcomingList->isNotEmpty())
+                <div class="space-y-3 rounded-2xl border border-zinc-200 p-6 dark:border-zinc-700 dark:bg-zinc-900">
+                    <flux:heading size="lg">Upcoming bookings</flux:heading>
+                    <div class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                        @foreach ($upcomingList as $b)
+                            <div class="flex flex-wrap items-center justify-between gap-3 py-3" wire:key="up-{{ $b->id }}">
+                                <div class="min-w-0 space-y-0.5">
+                                    <div class="font-medium text-zinc-900 dark:text-white">{{ $b->court->venue->name }} — {{ $b->court->name }}</div>
+                                    <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400">
+                                        <span class="inline-flex items-center gap-1.5">
+                                            <flux:icon name="calendar-days" class="size-4" /> {{ $b->booking_date->format('D, d M Y') }}
+                                        </span>
+                                        <span class="inline-flex items-center gap-1.5 tabular-nums">
+                                            <flux:icon name="clock" class="size-4" />
+                                            {{ \Illuminate\Support\Carbon::parse($b->start_time)->format('g:i A') }}–{{ \Illuminate\Support\Carbon::parse($b->end_time)->format('g:i A') }}
+                                        </span>
+                                        @if ($b->customer)
+                                            <span class="inline-flex items-center gap-1.5">
+                                                <flux:icon name="user" class="size-4" /> {{ $b->customer->name }}
+                                            </span>
+                                        @endif
+                                    </div>
+                                </div>
+                                <span class="tabular-nums text-sm font-semibold text-zinc-700 dark:text-zinc-300">RM {{ number_format($b->price, 2) }}</span>
+                            </div>
+                        @endforeach
+                    </div>
                 </div>
             @endif
         @endif
